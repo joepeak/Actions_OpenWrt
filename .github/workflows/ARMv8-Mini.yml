@@ -197,16 +197,11 @@ jobs:
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: 上传 .config 文件
-        if: always()
-        run: |
-          echo "OPENWRT_PATH: $OPENWRT_PATH"
-          cd $OPENWRT_PATH
-          echo "Current directory: $(pwd)"
-          ls -l .config || echo ".config not found"
-        uses: actions/upload-artifact@v4
-        with:
-          name: openwrt-config
-          path: .config
+      working-directory: /workdir/openwrt
+      uses: actions/upload-artifact@v4
+      with:
+        name: openwrt-config
+        path: .config
 
     - name: 编译固件
       id: compile
