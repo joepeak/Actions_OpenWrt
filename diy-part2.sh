@@ -40,14 +40,14 @@ sed -i '/exit 0/i\chmod +x /etc/init.d/*' package/lean/default-settings/files/zz
 
 # 拉取软件包
 # 抑制进度信息  --no-progress， 或者 --quiet，或者通过管道 2>&1 | grep '^Cloning into'，第一个需 Git 2.10+ 支持，默认 Ubuntu 22.04 已满足
-git clone --quiet https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
+git clone https://github.com/ophub/luci-app-amlogic.git package/luci-app-amlogic
 # git clone --no-progress https://github.com/kenzok8/small-package package/small-package
 # git clone --no-progress -b luci https://github.com/pexcn/openwrt-chinadns-ng.git package/luci-app-chinadns-ng
 # svn co https://github.com/immortalwrt-collections/openwrt-gowebdav/trunk/luci-app-gowebdav package/luci-app-gowebdav
 # svn co https://github.com/immortalwrt-collections/openwrt-gowebdav/trunk/gowebdav package/gowebdav
-git clone --quiet https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
-git clone --quiet -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
-git clone --quiet https://github.com/UnblockNeteaseMusic/luci-app-unblockneteasemusic.git package/luci-app-unblockneteasemusic
+git clone  https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+git clone https://github.com/UnblockNeteaseMusic/luci-app-unblockneteasemusic.git package/luci-app-unblockneteasemusic
 # 仓库不存在
 #svn co https://github.com/kiddin9/openwrt-packages/trunk/UnblockNeteaseMusic-Go package/UnblockNeteaseMusic-Go
 #svn co https://github.com/kiddin9/openwrt-packages/trunk/luci-app-unblockneteasemusic-go package/luci-app-unblockneteasemusic-go
@@ -96,10 +96,10 @@ sed -i 's#mount -t cifs#mount.cifs#g' feeds/luci/applications/luci-app-cifs-moun
 
 # golang版本修复
 rm -rf feeds/packages/lang/golang
-git clone --quiet https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
+git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
 
 # mosdns
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
 find ./ | grep Makefile | grep mosdns | xargs rm -f
-git clone --quiet https://github.com/sbwml/luci-app-mosdns package/mosdns
-git clone --quiet https://github.com/sbwml/v2ray-geodata package/geodata
+git clone https://github.com/sbwml/luci-app-mosdns package/mosdns
+git clone https://github.com/sbwml/v2ray-geodata package/geodata

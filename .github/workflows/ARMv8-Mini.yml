@@ -200,6 +200,9 @@ jobs:
       run: |
         cd $OPENWRT_PATH
 
+        echo "===== .config 内容 ====="
+        cat .config
+
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || make -j1 V=s
 
