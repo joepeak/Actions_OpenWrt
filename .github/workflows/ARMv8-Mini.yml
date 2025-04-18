@@ -197,11 +197,10 @@ jobs:
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: 上传 .config 文件
-      working-directory: /workdir/openwrt
       uses: actions/upload-artifact@v4
       with:
         name: openwrt-config
-        path: .config
+        path: $OPENWRT_PATH/.config
 
     - name: 编译固件
       id: compile
