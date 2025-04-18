@@ -176,6 +176,9 @@ jobs:
         [ -e files ] && mv -f files openwrt/files
         [ -e $CONFIG_FILE ] && mv -f $CONFIG_FILE $OPENWRT_PATH/.config
         
+        echo "===== 复制的 .config 内容 ====="
+        cat $OPENWRT_PATH/.config
+
         chmod +x $DIY_P2_SH
 
         cd $OPENWRT_PATH
