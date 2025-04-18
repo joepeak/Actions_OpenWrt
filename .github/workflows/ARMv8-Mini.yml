@@ -177,7 +177,7 @@ jobs:
         [ -e $CONFIG_FILE ] && mv -f $CONFIG_FILE $OPENWRT_PATH/.config
         
         echo "===== 复制的 .config 内容 ====="
-        grep "dnsmasq" .config
+        grep "dnsmasq" $OPENWRT_PATH/.config
 
         chmod +x $DIY_P2_SH
 
