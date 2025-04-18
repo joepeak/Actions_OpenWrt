@@ -177,7 +177,7 @@ jobs:
         [ -e $CONFIG_FILE ] && mv -f $CONFIG_FILE $OPENWRT_PATH/.config
         
         echo "===== 复制的 .config 内容 ====="
-        cat $OPENWRT_PATH/.config
+        grep "dnsmasq" .config
 
         chmod +x $DIY_P2_SH
 
@@ -196,6 +196,12 @@ jobs:
         
         echo "status=success" >> ${GITHUB_OUTPUT}
 
+    - name: 上传 .config 文件
+      uses: actions/upload-artifact@v4
+      with:
+        name: openwrt-config
+        path: ${{ env.OPENWRT_PATH }}/.config
+    
     - name: 编译固件
       id: compile
       if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
@@ -203,7 +209,7 @@ jobs:
         cd $OPENWRT_PATH
 
         echo "===== .config 内容 ====="
-        cat .config
+        grep "dnsmasq" .config
 
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || make -j1 V=s
