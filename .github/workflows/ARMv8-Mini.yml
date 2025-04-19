@@ -97,10 +97,11 @@ env:
   # 为定时任务设置默认参数（若未通过 workflow_dispatch 输入）
   #REPO_URL: https://github.com/coolsnowwolf/lede
   #REPO_BRANCH: master
-  #FEEDS_CONF: feeds.conf.default
+  
 
 
   CONFIG_FILE: configs/armv8-mini.config
+  FEEDS_CONF: feeds.conf.default
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   #FIRMWARE_TAG: ROOTFS_MINI
@@ -169,10 +170,6 @@ jobs:
           else
             echo "BUILDER_NAME=${{ inputs.builder_name }}" >> $GITHUB_ENV
           fi
-
-          # 设置 FEEDS_CONF，基于 SOURCE_BRANCH
-          FEEDS_CONF="config/$SOURCE_BRANCH/feeds.conf.default"
-          echo "FEEDS_CONF=$FEEDS_CONF" >> $GITHUB_ENV
 
     - name: 检查服务器配置
       run: |
