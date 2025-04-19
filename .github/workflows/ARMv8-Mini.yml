@@ -89,6 +89,7 @@ on:
           - ophub
           - angel
           - joe
+
   schedule:
     - cron: 0 16 * * 4
 
@@ -98,16 +99,7 @@ env:
   #REPO_BRANCH: master
   #FEEDS_CONF: feeds.conf.default
 
-  SOURCE_BRANCH: ${{ inputs.source_branch && inputs.source_branch || 'lede-master' }}
-  OPENWRT_STORAGE: ${{ inputs.openwrt_storage && inputs.openwrt_storage || 'save' }}
-  OPENWRT_BOARD: ${{ inputs.openwrt_board && inputs.openwrt_board || 's905d' }}
-  OPENWRT_KERNEL: ${{ inputs.openwrt_kernel && inputs.openwrt_kernel || '6.1.y_6.12.y' }}
-  AUTO_KERNEL: ${{ inputs.auto_kernel && inputs.auto_kernel || 'true' }}
-  KERNEL_REPO: ${{ inputs.kernel_repo && inputs.kernel_repo || 'ophub/kernel' }}
-  KERNEL_USAGE: ${{ inputs.kernel_usage && inputs.kernel_usage || 'stable' }}
-  BUILDER_NAME: ${{ inputs.builder_name && inputs.builder_name || 'joe' }}
 
-  FEEDS_CONF: config/${{ env.SOURCE_BRANCH }}/feeds.conf.default
   CONFIG_FILE: configs/armv8-mini.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
@@ -134,7 +126,52 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@main
-          
+    
+    - name: 初始环境变量设置
+      run: |
+          if [ -z "${{ inputs.source_branch }}" ]; then
+            echo "SOURCE_BRANCH=lede-master" >> $GITHUB_ENV
+          else
+            echo "SOURCE_BRANCH=${{ inputs.source_branch }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.openwrt_storage }}" ]; then
+            echo "OPENWRT_STORAGE=save" >> $GITHUB_ENV
+          else
+            echo "OPENWRT_STORAGE=${{ inputs.openwrt_storage }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.openwrt_board }}" ]; then
+            echo "OPENWRT_BOARD=s905d" >> $GITHUB_ENV
+          else
+            echo "OPENWRT_BOARD=${{ inputs.openwrt_board }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.openwrt_kernel }}" ]; then
+            echo "OPENWRT_KERNEL=6.1.y_6.12.y" >> $GITHUB_ENV
+          else
+            echo "OPENWRT_KERNEL=${{ inputs.openwrt_kernel }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.auto_kernel }}" ]; then
+            echo "AUTO_KERNEL=true" >> $GITHUB_ENV
+          else
+            echo "AUTO_KERNEL=${{ inputs.auto_kernel }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.kernel_repo }}" ]; then
+            echo "KERNEL_REPO=ophub/kernel" >> $GITHUB_ENV
+          else
+            echo "KERNEL_REPO=${{ inputs.kernel_repo }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.kernel_usage }}" ]; then
+            echo "KERNEL_USAGE=stable" >> $GITHUB_ENV
+          else
+            echo "KERNEL_USAGE=${{ inputs.kernel_usage }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.builder_name }}" ]; then
+            echo "BUILDER_NAME=joe" >> $GITHUB_ENV
+          else
+            echo "BUILDER_NAME=${{ inputs.builder_name }}" >> $GITHUB_ENV
+          fi
+
+          echo "FEEDS_CONF=${{ env.SOURCE_BRANCH }}/feeds.conf.default" >> $GITHUB_ENV
+
     - name: 检查服务器配置
       run: |
         echo "警告⚠"
