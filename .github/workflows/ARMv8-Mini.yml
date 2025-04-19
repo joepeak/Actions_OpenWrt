@@ -3,21 +3,118 @@ name: 编译 ARMv8 Mini 固件
 on:
   repository_dispatch:
   workflow_dispatch:
-
+    inputs:
+      source_branch:
+        description: "Select the source branch"
+        required: false
+        default: "lede-master"
+        type: choice
+        options:
+          - openwrt-main
+          - lede-master
+          - immortalwrt-master
+      openwrt_board:
+        description: "Select device board"
+        required: false
+        default: "s905d"
+        type: choice
+        options:
+          - all
+          - h96-max-m2
+          - nanopi-r5c
+          - nanopi-r5s
+          - orangepi-5-plus
+          - r66s
+          - r68s
+          - rock5b
+          - rock5c
+          - s905
+          - s905d
+          - s905x3
+          - s912
+          - s922x
+      openwrt_kernel:
+        description: "Select kernel version"
+        required: false
+        default: "6.1.y_6.12.y"
+        type: choice
+        options:
+          - 5.4.y
+          - 5.10.y
+          - 5.15.y
+          - 6.1.y
+          - 6.6.y
+          - 6.12.y
+          - 5.4.y_5.10.y
+          - 5.15.y_6.1.y
+          - 6.1.y_6.12.y
+          - 6.1.y_6.6.y
+          - 6.6.y_6.12.y
+      auto_kernel:
+        description: "Auto use the latest kernel"
+        required: false
+        default: true
+        type: boolean
+      kernel_repo:
+        description: "Set the kernel repository"
+        required: false
+        default: "ophub/kernel"
+        type: choice
+        options:
+          - ophub/kernel
+      kernel_usage:
+        description: "Set the tags of the stable kernel."
+        required: false
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - flippy
+          - dev
+          - beta
+      openwrt_storage:
+        description: "Select image storage type."
+        required: false
+        default: "save"
+        type: choice
+        options:
+          - save
+          - temp
+      builder_name:
+        description: "Set OpenWrt builder signature."
+        required: false
+        default: "joe"
+        type: choice
+        options:
+          - ophub
+          - angel
+          - joe
   schedule:
     - cron: 0 16 * * 4
 
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede
-  REPO_BRANCH: master
-  FEEDS_CONF: feeds.conf.default
+  # 为定时任务设置默认参数（若未通过 workflow_dispatch 输入）
+  #REPO_URL: https://github.com/coolsnowwolf/lede
+  #REPO_BRANCH: master
+  #FEEDS_CONF: feeds.conf.default
+
+  SOURCE_BRANCH: ${{ inputs.source_branch || 'lede-master' }}
+  OPENWRT_STORAGE: ${{ inputs.openwrt_storage || 'save' }}
+  OPENWRT_BOARD: ${{ inputs.openwrt_board || 's905d' }}
+  OPENWRT_KERNEL: ${{ inputs.openwrt_kernel || '6.1.y_6.12.y' }}
+  AUTO_KERNEL: ${{ inputs.auto_kernel || 'true' }}
+  KERNEL_REPO: ${{ inputs.kernel_repo || 'ophub/kernel' }}
+  KERNEL_USAGE: ${{ inputs.kernel_usage || 'stable' }}
+  BUILDER_NAME: ${{ inputs.builder_name || 'joe' }}
+
+  FEEDS_CONF: config/${{ env.SOURCE_BRANCH }}/feeds.conf.default
   CONFIG_FILE: configs/armv8-mini.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
-  FIRMWARE_TAG: ROOTFS_MINI
-  OPENWRT_RELEASE: true
-  OPENWRT_TAG: ARMv8_MINI
-  PACKAGE_SOC: s905d
+  #FIRMWARE_TAG: ROOTFS_MINI
+  #OPENWRT_RELEASE: true
+  #OPENWRT_TAG: ARMv8_MINI
+  #PACKAGE_SOC: s905d
   TZ: Asia/Shanghai
 
 jobs:
@@ -103,21 +200,47 @@ jobs:
       working-directory: /workdir
       if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
       run: |
+        # Set up compilation source code
+        if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
+              REPO_URL="https://github.com/openwrt/openwrt"
+              REPO_BRANCH="main"
+              TAGS_NAME="official"
+          elif [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
+              REPO_URL="https://github.com/coolsnowwolf/lede"
+              REPO_BRANCH="master"
+              TAGS_NAME="lede"
+          elif [[ "${{ env.SOURCE_BRANCH }}" == *"immortalwrt"* ]]; then
+              REPO_URL="https://github.com/immortalwrt/immortalwrt"
+              REPO_BRANCH="master"
+              TAGS_NAME="immortalwrt"
+          else
+              echo "Unknown source code repository."
+              exit 1
+          fi
+
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
         
         cd ${GITHUB_WORKSPACE}/openwrt
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
 
+        echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
+        echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
+
+        echo "build_tag=OpenWrt_${TAGS_NAME}_${{ env.OPENWRT_STORAGE }}_$(date +"%Y.%m")" >> ${GITHUB_OUTPUT}
+
         COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
         echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
         echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+
         COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
         echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
         echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+
         COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
         echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
         echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+
         COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
         echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
         
@@ -153,7 +276,7 @@ jobs:
 
     - name: 加载feeds
       run: |
-        [ -e $FEEDS_CONF ] && mv -f $FEEDS_CONF $OPENWRT_PATH/feeds.conf.default
+        [ -e $FEEDS_CONF ] && cp -f $FEEDS_CONF $OPENWRT_PATH/feeds.conf.default
         
         chmod +x $DIY_P1_SH
 
@@ -176,7 +299,7 @@ jobs:
     - name: 加载自定义配置
       run: |
         [ -e files ] && mv -f files openwrt/files
-        [ -e $CONFIG_FILE ] && mv -f $CONFIG_FILE $OPENWRT_PATH/.config
+        [ -e $CONFIG_FILE ] && cp -f $CONFIG_FILE $OPENWRT_PATH/.config
         
         #echo "===== 复制的 .config 内容 ====="
         #grep "dnsmasq" $OPENWRT_PATH/.config
@@ -221,42 +344,44 @@ jobs:
       id: clean
       if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
       run: |
-        echo "清理之前："
-        df -hT
         
-        mkdir openwrt-armvirt
-        mv openwrt/bin/targets/*/*/*rootfs.tar.gz openwrt-armvirt/
-        mv openwrt/.config openwrt-armvirt/config
+        cd $OPENWRT_PATH
+        [[ -d "output" ]] || mkdir output
+        cp -f bin/targets/*/*/*rootfs.tar.gz output/
+        cp -f .config output/config
+        rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
 
         # Generate sha256sum file
-        cd openwrt-armvirt/
+        cd output/
         for file in *; do [[ ! -d "${file}" ]] && sha256sum "${file}" >"${file}.sha"; done
           
-        echo -e "\n"
-        echo "列出空间占用前10的目录或文件："
-        sudo du -h --max-depth=1 /workdir |sort -nr | head -10
+        echo "清理后"
         
-        rm -rf /workdir/openwrt/ && sync
-        
-        echo -e "\n"
-        echo "清理之后："
-        df -hT
-        echo -e "\n"
-        echo "/workdir路径文件"
-        ls -l
-        echo -e "\n"
-        echo "列出空间占用前10的目录或文件："
-        sudo du -h --max-depth=1 /workdir |sort -nr | head -10
+        df -hT ${PWD}
         echo "status=success" >> ${GITHUB_OUTPUT}
-        
+     
+    - name: 上传 OpenWrt 到 Release
+      uses: ncipollo/release-action@main
+      if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
+      with:
+        tag: ${{ steps.codes.outputs.build_tag }}
+        artifacts: openwrt/output/*
+        allowUpdates: true
+        removeArtifacts: false
+        replacesArtifacts: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: 打包内核
       uses: unifreq/openwrt_packit@master
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       env:
-        WHOAMI: qiao
-        OPENWRT_ARMVIRT: openwrt-armvirt/*.tar.gz
-        PACKAGE_SOC: ${{ env.PACKAGE_SOC }}
-        KERNEL_VERSION_NAME: 5.15.105_6.6.1
+        openwrt_path: openwrt/output/*rootfs.tar.gz
+        openwrt_board: ${{ env.OPENWRT_BOARD }}
+        openwrt_kernel: ${{ env.OPENWRT_KERNEL }}
+        auto_kernel: ${{ env.AUTO_KERNEL }}
+        kernel_repo: ${{ env.KERNEL_REPO }}
+        kernel_usage: ${{ env.KERNEL_USAGE }}
+        builder_name: ${{ env.BUILDER_NAME }}
   
     - name: 发布固件
       uses: ncipollo/release-action@v1
@@ -266,7 +391,7 @@ jobs:
         allowUpdates: true
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
-          **This is OpenWrt Firmware for ${{ env.PACKAGE_SOC }}**
+          **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
           ### 📒 固件信息
           - 🚀 ARMv8 精简版，主打科学上网适合养老
           - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
