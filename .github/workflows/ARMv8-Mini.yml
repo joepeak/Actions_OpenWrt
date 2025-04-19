@@ -408,7 +408,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 打包内核
-      uses: unifreq/openwrt_packit@master
+      uses: ophub/amlogic-s9xxx-openwrt@main
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       env:
         openwrt_path: openwrt/output/*rootfs.tar.gz
@@ -420,11 +420,13 @@ jobs:
         builder_name: ${{ env.BUILDER_NAME }}
   
     - name: 发布固件
-      uses: ncipollo/release-action@v1
+      uses: ncipollo/release-action@main
       with:
-        tag: openwrt_armvirt_v8_${{ env.PACKAGED_OUTPUTDATE }}
+        tag: ${{ steps.codes.outputs.build_tag }}
         artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
         allowUpdates: true
+        removeArtifacts: false
+        replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
           **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
