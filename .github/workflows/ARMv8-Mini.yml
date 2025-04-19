@@ -98,14 +98,14 @@ env:
   #REPO_BRANCH: master
   #FEEDS_CONF: feeds.conf.default
 
-  SOURCE_BRANCH: ${{ inputs.source_branch || 'lede-master' }}
-  OPENWRT_STORAGE: ${{ inputs.openwrt_storage || 'save' }}
-  OPENWRT_BOARD: ${{ inputs.openwrt_board || 's905d' }}
-  OPENWRT_KERNEL: ${{ inputs.openwrt_kernel || '6.1.y_6.12.y' }}
-  AUTO_KERNEL: ${{ inputs.auto_kernel || 'true' }}
-  KERNEL_REPO: ${{ inputs.kernel_repo || 'ophub/kernel' }}
-  KERNEL_USAGE: ${{ inputs.kernel_usage || 'stable' }}
-  BUILDER_NAME: ${{ inputs.builder_name || 'joe' }}
+  SOURCE_BRANCH: ${{ inputs.source_branch && inputs.source_branch || 'lede-master' }}
+  OPENWRT_STORAGE: ${{ inputs.openwrt_storage && inputs.openwrt_storage || 'save' }}
+  OPENWRT_BOARD: ${{ inputs.openwrt_board && inputs.openwrt_board || 's905d' }}
+  OPENWRT_KERNEL: ${{ inputs.openwrt_kernel && inputs.openwrt_kernel || '6.1.y_6.12.y' }}
+  AUTO_KERNEL: ${{ inputs.auto_kernel && inputs.auto_kernel || 'true' }}
+  KERNEL_REPO: ${{ inputs.kernel_repo && inputs.kernel_repo || 'ophub/kernel' }}
+  KERNEL_USAGE: ${{ inputs.kernel_usage && inputs.kernel_usage || 'stable' }}
+  BUILDER_NAME: ${{ inputs.builder_name && inputs.builder_name || 'joe' }}
 
   FEEDS_CONF: config/${{ env.SOURCE_BRANCH }}/feeds.conf.default
   CONFIG_FILE: configs/armv8-mini.config
