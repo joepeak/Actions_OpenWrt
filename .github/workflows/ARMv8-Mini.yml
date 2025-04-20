@@ -381,19 +381,32 @@ jobs:
       if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
       run: |
         
-        cd $OPENWRT_PATH
-        [[ -d "output" ]] || mkdir output
-        cp -f bin/targets/*/*/*rootfs.tar.gz output/
-        cp -f .config output/config
-        rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
+        echo "清理之前："
+        df -hT
+        
+        mkdir openwrt-armvirt
+        mv openwrt/bin/targets/*/*/*rootfs.tar.gz openwrt-armvirt/
+        mv openwrt/.config openwrt-armvirt/config
 
         # Generate sha256sum file
-        cd output/
+        cd openwrt-armvirt/
         for file in *; do [[ ! -d "${file}" ]] && sha256sum "${file}" >"${file}.sha"; done
           
-        echo "清理后"
+        echo -e "\n"
+        echo "列出空间占用前10的目录或文件："
+        sudo du -h --max-depth=1 /workdir |sort -nr | head -10
         
-        df -hT ${PWD}
+        rm -rf /workdir/openwrt/ && sync
+        
+        echo -e "\n"
+        echo "清理之后："
+        df -hT
+        echo -e "\n"
+        echo "/workdir路径文件"
+        ls -l
+        echo -e "\n"
+        echo "列出空间占用前10的目录或文件："
+        sudo du -h --max-depth=1 /workdir |sort -nr | head -10
         echo "status=success" >> ${GITHUB_OUTPUT}
      
     - name: 上传 OpenWrt 到 Release
@@ -401,32 +414,30 @@ jobs:
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       with:
         tag: ${{ steps.codes.outputs.build_tag }}
-        artifacts: openwrt/output/*
+        artifacts: openwrt-armvirt/*
         allowUpdates: true
         removeArtifacts: false
         replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 打包内核
-      uses: ophub/amlogic-s9xxx-openwrt@main
+      uses: unifreq/openwrt_packit@master
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       env:
-        openwrt_path: openwrt/output/*rootfs.tar.gz
-        openwrt_board: ${{ env.OPENWRT_BOARD }}
-        openwrt_kernel: ${{ env.OPENWRT_KERNEL }}
-        auto_kernel: ${{ env.AUTO_KERNEL }}
-        kernel_repo: ${{ env.KERNEL_REPO }}
+        OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
+        PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
+        KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
+        KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
+        KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
         kernel_usage: ${{ env.KERNEL_USAGE }}
-        builder_name: ${{ env.BUILDER_NAME }}
+        WHOAMI: ${{ env.BUILDER_NAME }}
   
     - name: 发布固件
       uses: ncipollo/release-action@main
       with:
-        tag: ${{ steps.codes.outputs.build_tag }}
+        tag: openwrt_armvirt_v8_${{ env.PACKAGED_OUTPUTDATE }}
         artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
         allowUpdates: true
-        removeArtifacts: false
-        replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
           **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
