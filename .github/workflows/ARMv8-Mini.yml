@@ -58,10 +58,11 @@ on:
       kernel_repo:
         description: "Set the kernel repository"
         required: false
-        default: "ophub/kernel"
+        default: "breakings/OpenWrt"
         type: choice
         options:
           - ophub/kernel
+          - breakings/OpenWrt
       kernel_usage:
         description: "Set the tags of the stable kernel."
         required: false
@@ -104,7 +105,7 @@ env:
   OPENWRT_BOARD: ${{ inputs.openwrt_board || 's905d' }}
   OPENWRT_KERNEL: ${{ inputs.openwrt_kernel || '6.1.y_6.12.y' }}
   AUTO_KERNEL: ${{ inputs.auto_kernel || 'true' }}
-  KERNEL_REPO: ${{ inputs.kernel_repo || 'ophub/kernel' }}
+  KERNEL_REPO: ${{ inputs.kernel_repo || 'breakings/OpenWrt' }}
   KERNEL_USAGE: ${{ inputs.kernel_usage || 'stable' }}
   BUILDER_NAME: ${{ inputs.builder_name || 'joe' }}
 
