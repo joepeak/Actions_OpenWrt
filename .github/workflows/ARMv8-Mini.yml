@@ -298,8 +298,14 @@ jobs:
         [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
         
+        #echo "===== .config 内容 ====="
+        #grep "CONFIG_TARGET_BOARD" .config
+
         make defconfig > /dev/null 2>&1
 
+        #echo "===== .config 内容 ====="
+        #grep "CONFIG_TARGET_BOARD" .config
+        
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
         
