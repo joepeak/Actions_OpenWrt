@@ -299,12 +299,29 @@ jobs:
         cd $OPENWRT_PATH
         
         echo "===== .config 内容 defconfig 之前====="
-        grep "CONFIG_TARGET_BOARD" .config || true
+        grep "CONFIG_TARGET" .config || true
 
+        echo "===== Checking target/linux/armvirt/ ====="
+        if [ -d "target/linux/armvirt" ]; then
+          find target/linux/armvirt -type f -name "config-*" -exec echo "Checking {}" \; -exec grep -H "CONFIG_TARGET_BOARD" {} \;
+        else
+          echo "Directory target/linux/armvirt not found"
+        fi
+
+        echo "===== Checking target/linux/mediatek/ ====="
+        if [ -d "target/linux/mediatek" ]; then
+          find target/linux/mediatek -type f -name "config-*" -exec echo "Checking {}" \; -exec grep -H "CONFIG_TARGET_BOARD" {} \;
+        else
+          echo "Directory target/linux/mediatek not found"
+        fi
+
+        echo "===== Checking all config-* files in target/linux/ ====="
+          find target/linux/ -type f -name "config-*" -exec echo "Checking {}" \; -exec grep -H "CONFIG_TARGET_BOARD" {} \;
+        
         make defconfig > /dev/null 2>&1
 
         echo "===== .config 内容 defconfig 之后====="
-        grep "CONFIG_TARGET_BOARD" .config || true
+        grep "CONFIG_TARGET" .config || true
 
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
