@@ -315,8 +315,8 @@ jobs:
           echo "Directory target/linux/mediatek not found"
         fi
 
-        echo "===== Checking all config-* files in target/linux/ ====="
-          find target/linux/ -type f -name "config-*" -exec echo "Checking {}" \; -exec grep -H "CONFIG_TARGET_BOARD" {} \;
+        # echo "===== Checking all config-* files in target/linux/ ====="
+        # find target/linux/ -type f -name "config-*" -exec echo "Checking {}" \; -exec grep -H "CONFIG_TARGET_BOARD" {} \;
         
         # 注释此行，避免执行 make defconfig
         # make defconfig > /dev/null 2>&1
