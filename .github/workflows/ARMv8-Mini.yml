@@ -339,7 +339,7 @@ jobs:
       if: env.CACHE_TOOLCHAIN == 'true'
       uses: HiGarfield/cachewrtbuild@main
       with:
-        ccache: true
+        ccache: false
         mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
         prefix: ${{ env.OPENWRT_PATH }}
 
@@ -370,8 +370,8 @@ jobs:
         [ -e files ] && mv -f files openwrt/files
         [ -e $CONFIG_FILE ] && cp -f $CONFIG_FILE $OPENWRT_PATH/.config
         
-        echo "===== 复制的 .config 内容 ====="
-        grep "dnsmasq" $OPENWRT_PATH/.config
+        # echo "===== 复制的 .config 内容 ====="
+        # grep "dnsmasq" $OPENWRT_PATH/.config
 
         chmod +x $DIY_P2_SH
 
@@ -383,7 +383,11 @@ jobs:
       run: |
         cd $OPENWRT_PATH
 
-        make defconfig
+        # make defconfig
+
+        echo "===== .config 内容 ====="
+        grep "CONFIG_TARGET" .config || true
+
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
