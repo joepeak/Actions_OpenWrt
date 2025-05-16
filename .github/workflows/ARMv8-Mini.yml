@@ -129,7 +129,6 @@ jobs:
       run: |
         [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
-        
         make defconfig > /dev/null 2>&1
 
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
@@ -147,7 +146,7 @@ jobs:
       if: env.CACHE_TOOLCHAIN == 'true'
       uses: HiGarfield/cachewrtbuild@main
       with:
-        ccache: true
+        ccache: false
         mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
         prefix: ${{ env.OPENWRT_PATH }}
 
@@ -176,11 +175,8 @@ jobs:
     - name: 加载自定义配置
       run: |
         [ -e files ] && mv -f files openwrt/files
-        [ -e $CONFIG_FILE ] && mv -f $CONFIG_FILE $OPENWRT_PATH/.config
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
         
-        #echo "===== 复制的 .config 内容 ====="
-        #grep "dnsmasq" $OPENWRT_PATH/.config
-
         chmod +x $DIY_P2_SH
 
         cd $OPENWRT_PATH
@@ -203,9 +199,6 @@ jobs:
       if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
       run: |
         cd $OPENWRT_PATH
-
-        #echo "===== .config 内容 ====="
-        #grep "dnsmasq" .config
 
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || make -j1 V=s
