@@ -318,7 +318,8 @@ jobs:
         echo "===== Checking all config-* files in target/linux/ ====="
           find target/linux/ -type f -name "config-*" -exec echo "Checking {}" \; -exec grep -H "CONFIG_TARGET_BOARD" {} \;
         
-        make defconfig > /dev/null 2>&1
+        # 注释此行，避免执行 make defconfig
+        # make defconfig > /dev/null 2>&1
 
         echo "===== .config 内容 defconfig 之后====="
         grep "CONFIG_TARGET" .config || true
@@ -369,8 +370,8 @@ jobs:
         [ -e files ] && mv -f files openwrt/files
         [ -e $CONFIG_FILE ] && cp -f $CONFIG_FILE $OPENWRT_PATH/.config
         
-        #echo "===== 复制的 .config 内容 ====="
-        #grep "dnsmasq" $OPENWRT_PATH/.config
+        echo "===== 复制的 .config 内容 ====="
+        grep "dnsmasq" $OPENWRT_PATH/.config
 
         chmod +x $DIY_P2_SH
 
@@ -395,8 +396,8 @@ jobs:
       run: |
         cd $OPENWRT_PATH
 
-        #echo "===== .config 内容 ====="
-        #grep "dnsmasq" .config
+        echo "===== .config 内容 ====="
+        grep "dnsmasq" .config
 
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || make -j1 V=s
