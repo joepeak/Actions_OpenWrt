@@ -364,5 +364,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: openwrt-config
-        path: .config
-      working-directory: ${{ env.OPENWRT_PATH }}  # 强制指定工作目录
+        path: ${{ env.OPENWRT_PATH }}.config
