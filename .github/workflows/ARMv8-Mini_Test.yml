@@ -176,7 +176,7 @@ jobs:
         sudo swapoff -a
         sudo -E apt-get -y update
         sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
-        sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt)
+        sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt) build-essential libncurses-dev unzip
         sudo -E systemctl daemon-reload
         #sudo -E apt-get -y full-upgrade
         sudo -E apt-get -y autoremove --purge
@@ -331,6 +331,7 @@ jobs:
         
         #echo "===== 复制的 .config 内容 ====="
         #grep "dnsmasq" $OPENWRT_PATH/.config
+
         chmod +x $DIY_P2_SH
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_P2_SH
@@ -340,10 +341,19 @@ jobs:
       run: |
         cd $OPENWRT_PATH
         make defconfig
+
+        # 调试输出
+        echo "===== 当前目录 ====="
+        pwd
+        echo "===== .config 存在性检查 ====="
+        ls -la .config
+        # 继续执行
+
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
         
+
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: 上传 .config 文件
