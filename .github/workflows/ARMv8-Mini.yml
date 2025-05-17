@@ -359,6 +359,9 @@ jobs:
         echo "清理之前："
         df -hT
         
+        echo "编译结果："
+        ls openwrt/bin/targets
+
         mkdir openwrt-armvirt
         mv openwrt/bin/targets/*/*/*rootfs.tar.gz openwrt-armvirt/
         mv openwrt/.config openwrt-armvirt/config
