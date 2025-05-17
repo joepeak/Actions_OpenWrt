@@ -249,6 +249,11 @@ jobs:
               exit 1
           fi
         git clone $REPO_URL -b $REPO_BRANCH openwrt
+
+        # 以下为测试
+        cd openwrt
+        git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
+        
         ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
         
         cd ${GITHUB_WORKSPACE}/openwrt
