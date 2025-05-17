@@ -171,6 +171,9 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
+        sudo mkdir -p /workdir
+        sudo chown -R runner.runner /workdir
+        
         docker rmi $(docker images -q) 2>/dev/null
         sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
         sudo swapoff -a
