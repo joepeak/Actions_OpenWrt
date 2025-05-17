@@ -312,6 +312,7 @@ jobs:
         chmod +x $DIY_P1_SH
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_P1_SH
+
     - name: 更新feeds
       run: |
         cd $OPENWRT_PATH
@@ -364,4 +365,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: openwrt-config
-        path: ${{ env.OPENWRT_PATH }}.config
+        path: ${{ env.OPENWRT_PATH }}/.config
