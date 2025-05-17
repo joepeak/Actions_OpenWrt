@@ -90,14 +90,16 @@ on:
           - angel
           - joe
 
-  # schedule:
-  #   - cron: 0 16 * * 4
+  schedule:
+    - cron: 0 16 * * 4
 
 env:
   # 为定时任务设置默认参数（若未通过 workflow_dispatch 输入）
   #REPO_URL: https://github.com/coolsnowwolf/lede
   #REPO_BRANCH: master
   
+
+
   CONFIG_FILE: configs/armv8-mini.config
   FEEDS_CONF: feeds.conf.default
   DIY_P1_SH: diy-part1.sh
@@ -126,6 +128,44 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
     
+    - name: 检查服务器配置
+      run: |
+        echo "警告⚠"
+        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
+        echo "云编译建议取消勾选Node.js及其相关插件！"
+        echo "已知CPU型号（降序）：8370C,8272CL,8171M,E5系列"
+        echo "--------------------------CPU信息--------------------------"
+        echo "CPU物理数量:$(cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l)"
+        echo -e "CPU核心及版本信息：$(cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c) \n"
+        echo "--------------------------内存信息--------------------------"
+        echo "已安装内存详细信息："
+        sudo lshw -short -C memory | grep GiB
+        echo -e "\n"
+        echo "--------------------------硬盘信息--------------------------"
+        echo -e  "硬盘数量：$(ls /dev/sd* | grep -v [1-9] | wc -l) \n"
+        
+        echo "硬盘详情："
+        df -Th
+
+    - name: 创建模拟物理磁盘
+      run: |
+          mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
+          root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
+          sudo truncate -s "${mnt_size}"G /mnt/mnt.img
+          sudo truncate -s "${root_size}"G /root.img
+          sudo losetup /dev/loop6 /mnt/mnt.img
+          sudo losetup /dev/loop7 /root.img
+          sudo pvcreate /dev/loop6
+          sudo pvcreate /dev/loop7
+          sudo vgcreate github /dev/loop6 /dev/loop7
+          sudo lvcreate -n runner -l 100%FREE github
+          sudo mkfs.xfs /dev/github/runner
+          sudo mkdir -p /workdir
+          sudo mount /dev/github/runner /workdir
+          sudo chown -R runner.runner /workdir
+          echo "硬盘详情："
+          df -Th
+
     - name: 初始化编译环境
       id: init
       env:
@@ -145,7 +185,7 @@ jobs:
         sudo rm -rf ~/{.cargo,.dotnet,.rustup}
         sudo timedatectl set-timezone "${TZ}"
         echo "status=success" >> ${GITHUB_OUTPUT}
-
+    
     - name: 初始环境变量设置
       run: |
           if [ -z "${{ inputs.source_branch }}" ]; then
@@ -189,7 +229,6 @@ jobs:
             echo "BUILDER_NAME=${{ inputs.builder_name }}" >> $GITHUB_ENV
           fi
 
-
     - name: 克隆源码
       id: codes
       working-directory: /workdir
@@ -217,7 +256,7 @@ jobs:
         # 以下为测试
         cd openwrt
         git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
-        
+
         ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
         
         cd ${GITHUB_WORKSPACE}/openwrt
@@ -273,7 +312,6 @@ jobs:
         chmod +x $DIY_P1_SH
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_P1_SH
-      
     - name: 更新feeds
       run: |
         cd $OPENWRT_PATH
@@ -296,4 +334,20 @@ jobs:
         chmod +x $DIY_P2_SH
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_P2_SH
+      
+    - name: 下载 DL包
+      id: package
+      run: |
+        cd $OPENWRT_PATH
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+        
+        echo "status=success" >> ${GITHUB_OUTPUT}
 
+    - name: 上传 .config 文件
+      uses: actions/upload-artifact@v4
+      with:
+        name: openwrt-config
+        path: ${{ env.OPENWRT_PATH }}/.config
