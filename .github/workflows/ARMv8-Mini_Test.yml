@@ -173,7 +173,7 @@ jobs:
       run: |
         sudo mkdir -p /workdir
         sudo chown -R runner.runner /workdir
-        
+
         docker rmi $(docker images -q) 2>/dev/null
         sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
         sudo swapoff -a
@@ -257,8 +257,8 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
         # 以下为测试
-        # cd openwrt
-        # git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
+        cd openwrt
+        git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
 
         ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
         
