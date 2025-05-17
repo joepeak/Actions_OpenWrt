@@ -1,0 +1,299 @@
+name:  ARMv8 Mini 源码测试
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Select the source branch"
+        required: false
+        default: "lede-master"
+        type: choice
+        options:
+          - openwrt-main
+          - lede-master
+          - immortalwrt-master
+      openwrt_board:
+        description: "Select device board"
+        required: false
+        default: "s905d"
+        type: choice
+        options:
+          - all
+          - h96-max-m2
+          - nanopi-r5c
+          - nanopi-r5s
+          - orangepi-5-plus
+          - r66s
+          - r68s
+          - rock5b
+          - rock5c
+          - s905
+          - s905d
+          - s905x3
+          - s912
+          - s922x
+      openwrt_kernel:
+        description: "Select kernel version"
+        required: false
+        default: "6.1.y_6.12.y"
+        type: choice
+        options:
+          - 5.4.y
+          - 5.10.y
+          - 5.15.y
+          - 6.1.y
+          - 6.6.y
+          - 6.12.y
+          - 5.4.y_5.10.y
+          - 5.15.y_6.1.y
+          - 6.1.y_6.12.y
+          - 6.1.y_6.6.y
+          - 6.6.y_6.12.y
+      auto_kernel:
+        description: "Auto use the latest kernel"
+        required: false
+        default: true
+        type: boolean
+      kernel_repo:
+        description: "Set the kernel repository"
+        required: false
+        default: "ophub/kernel"
+        type: choice
+        options:
+          - ophub/kernel
+      kernel_usage:
+        description: "Set the tags of the stable kernel."
+        required: false
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - flippy
+          - dev
+          - beta
+      openwrt_storage:
+        description: "Select image storage type."
+        required: false
+        default: "save"
+        type: choice
+        options:
+          - save
+          - temp
+      builder_name:
+        description: "Set OpenWrt builder signature."
+        required: false
+        default: "joe"
+        type: choice
+        options:
+          - ophub
+          - angel
+          - joe
+
+  # schedule:
+  #   - cron: 0 16 * * 4
+
+env:
+  # 为定时任务设置默认参数（若未通过 workflow_dispatch 输入）
+  #REPO_URL: https://github.com/coolsnowwolf/lede
+  #REPO_BRANCH: master
+  
+  CONFIG_FILE: configs/armv8-mini.config
+  FEEDS_CONF: feeds.conf.default
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
+  #FIRMWARE_TAG: ROOTFS_MINI
+  #OPENWRT_RELEASE: true
+  #OPENWRT_TAG: ARMv8_MINI
+  #PACKAGE_SOC: s905d
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
+    
+    outputs:
+      COMMIT_AUTHOR: ${{ steps.clone.outputs.COMMIT_AUTHOR }}
+      COMMIT_DATE: ${{ steps.clone.outputs.COMMIT_DATE }}
+      COMMIT_MESSAGE: ${{ steps.clone.outputs.COMMIT_MESSAGE }}
+      COMMIT_HASH: ${{ steps.clone.outputs.COMMIT_HASH }}
+      DEVICE_TARGET: ${{ steps.variable.outputs.DEVICE_TARGET }}
+      DEVICE_SUBTARGET: ${{ steps.variable.outputs.DEVICE_SUBTARGET }}
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@main
+    
+    - name: 初始化编译环境
+      id: init
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        docker rmi $(docker images -q) 2>/dev/null
+        sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
+        sudo swapoff -a
+        sudo -E apt-get -y update
+        sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
+        sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt)
+        sudo -E systemctl daemon-reload
+        #sudo -E apt-get -y full-upgrade
+        sudo -E apt-get -y autoremove --purge
+        sudo -E apt-get clean
+        sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
+        sudo rm -rf ~/{.cargo,.dotnet,.rustup}
+        sudo timedatectl set-timezone "${TZ}"
+        echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: 初始环境变量设置
+      run: |
+          if [ -z "${{ inputs.source_branch }}" ]; then
+            echo "SOURCE_BRANCH=lede-master" >> $GITHUB_ENV
+          else
+            echo "SOURCE_BRANCH=${{ inputs.source_branch }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.openwrt_storage }}" ]; then
+            echo "OPENWRT_STORAGE=save" >> $GITHUB_ENV
+          else
+            echo "OPENWRT_STORAGE=${{ inputs.openwrt_storage }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.openwrt_board }}" ]; then
+            echo "OPENWRT_BOARD=s905d" >> $GITHUB_ENV
+          else
+            echo "OPENWRT_BOARD=${{ inputs.openwrt_board }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.openwrt_kernel }}" ]; then
+            echo "OPENWRT_KERNEL=6.1.y_6.12.y" >> $GITHUB_ENV
+          else
+            echo "OPENWRT_KERNEL=${{ inputs.openwrt_kernel }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.auto_kernel }}" ]; then
+            echo "AUTO_KERNEL=true" >> $GITHUB_ENV
+          else
+            echo "AUTO_KERNEL=${{ inputs.auto_kernel }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.kernel_repo }}" ]; then
+            echo "KERNEL_REPO=ophub/kernel" >> $GITHUB_ENV
+          else
+            echo "KERNEL_REPO=${{ inputs.kernel_repo }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.kernel_usage }}" ]; then
+            echo "KERNEL_USAGE=stable" >> $GITHUB_ENV
+          else
+            echo "KERNEL_USAGE=${{ inputs.kernel_usage }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ inputs.builder_name }}" ]; then
+            echo "BUILDER_NAME=joe" >> $GITHUB_ENV
+          else
+            echo "BUILDER_NAME=${{ inputs.builder_name }}" >> $GITHUB_ENV
+          fi
+
+
+    - name: 克隆源码
+      id: codes
+      working-directory: /workdir
+      if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
+      run: |
+        # Set up compilation source code
+        if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
+              REPO_URL="https://github.com/openwrt/openwrt"
+              REPO_BRANCH="main"
+              TAGS_NAME="official"
+          elif [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
+              REPO_URL="https://github.com/coolsnowwolf/lede"
+              REPO_BRANCH="master"
+              TAGS_NAME="lede"
+          elif [[ "${{ env.SOURCE_BRANCH }}" == *"immortalwrt"* ]]; then
+              REPO_URL="https://github.com/immortalwrt/immortalwrt"
+              REPO_BRANCH="master"
+              TAGS_NAME="immortalwrt"
+          else
+              echo "Unknown source code repository."
+              exit 1
+          fi
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
+
+        # 以下为测试
+        cd openwrt
+        git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
+        
+        ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
+        
+        cd ${GITHUB_WORKSPACE}/openwrt
+        echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
+        echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
+        echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
+        echo "build_tag=OpenWrt_${TAGS_NAME}_${{ env.OPENWRT_STORAGE }}_$(date +"%Y.%m")" >> ${GITHUB_OUTPUT}
+        COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
+        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+        COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
+        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+        COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
+        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+        COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
+        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+        
+        echo "status=success" >> ${GITHUB_OUTPUT}
+       
+    - name: 生成环境变量
+      id: variable
+      if: ${{ steps.codes.outputs.status }} == 'success' && !cancelled()
+      run: |
+        [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
+        cd $OPENWRT_PATH
+        
+        make defconfig > /dev/null 2>&1
+        SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
+        echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
+        
+        DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
+        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
+        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
+        
+        DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
+        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
+        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
+
+    - name: 缓存工具链
+      if: env.CACHE_TOOLCHAIN == 'true'
+      uses: HiGarfield/cachewrtbuild@main
+      with:
+        ccache: true
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+        prefix: ${{ env.OPENWRT_PATH }}
+
+    - name: 加载feeds
+      run: |
+        [ -e $FEEDS_CONF ] && cp -f $FEEDS_CONF $OPENWRT_PATH/feeds.conf.default
+        
+        chmod +x $DIY_P1_SH
+        cd $OPENWRT_PATH
+        $GITHUB_WORKSPACE/$DIY_P1_SH
+      
+    - name: 更新feeds
+      run: |
+        cd $OPENWRT_PATH
+        ./scripts/feeds update -a
+         #据说重新执行一次可以解决很多警告
+        ./scripts/feeds update -a
+        
+    - name: 安装feeds
+      run: |
+        cd $OPENWRT_PATH
+        ./scripts/feeds install -a
+        
+    - name: 加载自定义配置
+      run: |
+        [ -e files ] && mv -f files openwrt/files
+        [ -e $CONFIG_FILE ] && cp -f $CONFIG_FILE $OPENWRT_PATH/.config
+        
+        #echo "===== 复制的 .config 内容 ====="
+        #grep "dnsmasq" $OPENWRT_PATH/.config
+        chmod +x $DIY_P2_SH
+        cd $OPENWRT_PATH
+        $GITHUB_WORKSPACE/$DIY_P2_SH
+
