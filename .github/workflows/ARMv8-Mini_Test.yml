@@ -365,4 +365,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: openwrt-config
-        path: ${{ env.OPENWRT_PATH }}/.config
+        path: openwrt/.config
