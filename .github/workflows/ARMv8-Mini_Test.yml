@@ -356,23 +356,24 @@ jobs:
 
         echo "status=success" >> ${GITHUB_OUTPUT}
 
-    - name: 最终验证 .config 存在
-      run: |
-        echo "===== 最终路径检查 ====="
-        ls -la ${{ env.OPENWRT_PATH }}/.config
+    # - name: 最终验证 .config 存在
+    #   run: |
+    #     echo "===== 最终路径检查 ====="
+    #     ls -la ${{ env.OPENWRT_PATH }}/.config
 
-        stat ${{ env.OPENWRT_PATH }}/.config
+    #     stat ${{ env.OPENWRT_PATH }}/.config
 
-    - name: 复制 .config 到临时目录
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/artifacts
-        cp ${{ env.OPENWRT_PATH }}/.config $GITHUB_WORKSPACE/artifacts/openwrt-config
-        ls -la $GITHUB_WORKSPACE/artifacts/openwrt-config
+    # - name: 复制 .config 到临时目录
+    #   run: |
+    #     mkdir -p $GITHUB_WORKSPACE/artifacts
+    #     cp ${{ env.OPENWRT_PATH }}/.config $GITHUB_WORKSPACE/artifacts/openwrt-config
+    #     ls -la $GITHUB_WORKSPACE/artifacts/openwrt-config
         
     - name: 上传 .config 文件
       uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6
+      include-hidden-files: true
       with:
         name: openwrt-config
-        path: ${{ github.workspace }}/artifacts/openwrt-config
+        path: ${{ github.workspace }}/openwrt/.config
         if-no-files-found: error # 改为 error 以便更严格的调试
         compression-level: 0 # 禁用压缩以减少潜在问题
