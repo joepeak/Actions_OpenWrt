@@ -352,12 +352,17 @@ jobs:
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
-        
 
         echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: 最终验证 .config 存在
+      run: |
+        echo "===== 最终路径检查 ====="
+        ls -la ${{ env.OPENWRT_PATH }}/.config
 
     - name: 上传 .config 文件
       uses: actions/upload-artifact@v4
       with:
         name: openwrt-config
-        path: ${{ env.OPENWRT_PATH }}/.config
+        path: .config
+      working-directory: ${{ env.OPENWRT_PATH }}  # 强制指定工作目录
