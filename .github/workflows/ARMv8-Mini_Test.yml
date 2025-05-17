@@ -373,6 +373,6 @@ jobs:
       uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6
       with:
         name: openwrt-config
-        path: $GITHUB_WORKSPACE/artifacts/openwrt-config
+        path: ${{ github.workspace }}/artifacts/openwrt-config
         if-no-files-found: error # 改为 error 以便更严格的调试
         compression-level: 0 # 禁用压缩以减少潜在问题
