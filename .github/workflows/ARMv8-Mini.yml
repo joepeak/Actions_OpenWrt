@@ -94,12 +94,6 @@ on:
     - cron: 0 16 * * 4
 
 env:
-  # 为定时任务设置默认参数（若未通过 workflow_dispatch 输入）
-  #REPO_URL: https://github.com/coolsnowwolf/lede
-  #REPO_BRANCH: master
-  
-
-
   CONFIG_FILE: configs/armv8-mini.config
   FEEDS_CONF: feeds.conf.default
   DIY_P1_SH: diy-part1.sh
@@ -120,6 +114,7 @@ jobs:
       COMMIT_DATE: ${{ steps.clone.outputs.COMMIT_DATE }}
       COMMIT_MESSAGE: ${{ steps.clone.outputs.COMMIT_MESSAGE }}
       COMMIT_HASH: ${{ steps.clone.outputs.COMMIT_HASH }}
+
       DEVICE_TARGET: ${{ steps.variable.outputs.DEVICE_TARGET }}
       DEVICE_SUBTARGET: ${{ steps.variable.outputs.DEVICE_SUBTARGET }}
 
@@ -160,9 +155,11 @@ jobs:
           sudo vgcreate github /dev/loop6 /dev/loop7
           sudo lvcreate -n runner -l 100%FREE github
           sudo mkfs.xfs /dev/github/runner
+
           sudo mkdir -p /workdir
           sudo mount /dev/github/runner /workdir
           sudo chown -R runner.runner /workdir
+
           echo "硬盘详情："
           df -Th
 
@@ -186,33 +183,38 @@ jobs:
         sudo timedatectl set-timezone "${TZ}"
         echo "status=success" >> ${GITHUB_OUTPUT}
     
-    - name: 初始环境变量设置
+    - name: 生成源码变量
       run: |
           if [ -z "${{ inputs.source_branch }}" ]; then
             echo "SOURCE_BRANCH=lede-master" >> $GITHUB_ENV
           else
             echo "SOURCE_BRANCH=${{ inputs.source_branch }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.openwrt_storage }}" ]; then
             echo "OPENWRT_STORAGE=save" >> $GITHUB_ENV
           else
             echo "OPENWRT_STORAGE=${{ inputs.openwrt_storage }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.openwrt_board }}" ]; then
             echo "OPENWRT_BOARD=s905d" >> $GITHUB_ENV
           else
             echo "OPENWRT_BOARD=${{ inputs.openwrt_board }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.openwrt_kernel }}" ]; then
             echo "OPENWRT_KERNEL=6.1.y_6.12.y" >> $GITHUB_ENV
           else
             echo "OPENWRT_KERNEL=${{ inputs.openwrt_kernel }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.auto_kernel }}" ]; then
             echo "AUTO_KERNEL=true" >> $GITHUB_ENV
           else
             echo "AUTO_KERNEL=${{ inputs.auto_kernel }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.kernel_repo }}" ]; then
             echo "KERNEL_REPO=ophub/kernel" >> $GITHUB_ENV
           else
@@ -223,6 +225,7 @@ jobs:
           else
             echo "KERNEL_USAGE=${{ inputs.kernel_usage }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.builder_name }}" ]; then
             echo "BUILDER_NAME=joe" >> $GITHUB_ENV
           else
@@ -253,10 +256,12 @@ jobs:
           fi
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-        # 以下为测试
-        cd openwrt
-        git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
-
+        if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
+          # 以下为测试
+          cd openwrt
+          git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
+        fi
+ 
         ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
         
         cd ${GITHUB_WORKSPACE}/openwrt
@@ -312,6 +317,7 @@ jobs:
         chmod +x $DIY_P1_SH
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_P1_SH
+
     - name: 更新feeds
       run: |
         cd $OPENWRT_PATH
@@ -331,6 +337,7 @@ jobs:
         
         #echo "===== 复制的 .config 内容 ====="
         #grep "dnsmasq" $OPENWRT_PATH/.config
+
         chmod +x $DIY_P2_SH
         cd $OPENWRT_PATH
         $GITHUB_WORKSPACE/$DIY_P2_SH
@@ -373,9 +380,6 @@ jobs:
         echo "清理之前："
         df -hT
         
-        echo "编译结果："
-        ls openwrt/bin/targets
-
         mkdir openwrt-armvirt
         mv openwrt/bin/targets/*/*/*rootfs.tar.gz openwrt-armvirt/
         mv openwrt/.config openwrt-armvirt/config
@@ -395,12 +399,9 @@ jobs:
         df -hT
 
         echo -e "\n"
-        echo "/workdir路径文件"
+        echo "openwrt-armvirt目录下的文件："
         ls -l
 
-        echo -e "\n"
-        echo "列出空间占用前10的目录或文件："
-        sudo du -h --max-depth=1 /workdir |sort -nr | head -10
         echo "status=success" >> ${GITHUB_OUTPUT}
      
     - name: 上传 OpenWrt 到 Release
@@ -410,51 +411,52 @@ jobs:
         tag: ${{ steps.codes.outputs.build_tag }}
         artifacts: openwrt-armvirt/*
         allowUpdates: true
-        removeArtifacts: false
-        replacesArtifacts: true
+        # removeArtifacts: false
+        # replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: 打包内核
-      uses: unifreq/openwrt_packit@master
-      if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
-      env:
-        OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
-        PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
-        KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
-        KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
-        KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
-        kernel_usage: ${{ env.KERNEL_USAGE }}
-        WHOAMI: ${{ env.BUILDER_NAME }}
+    # - name: 打包内核
+    #   uses: unifreq/openwrt_packit@master
+    #   if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
+    #   env:
+    #     OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
+    #     PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
+    #     KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
+    #     KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
+    #     KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
+    #     kernel_usage: ${{ env.KERNEL_USAGE }}
+    #     WHOAMI: ${{ env.BUILDER_NAME }}
   
-    - name: 发布固件
-      uses: ncipollo/release-action@main
-      with:
-        tag: ${{ steps.codes.outputs.build_tag }}
-        artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
-        allowUpdates: true
-        token: ${{ secrets.GITHUB_TOKEN }}
-        body: |
-          **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
-          ### 📒 固件信息
-          - 🚀 ARMv8 精简版，主打科学上网适合养老
-          - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-          - ⚽ 固件源码: ${{ env.REPO_URL }}
-          - 💝 源码分支: ${{ env.REPO_BRANCH }}
-          - 🌐 默认地址: 10.10.10.1
-          - 🔑 默认密码: password
-          ### 🍻 安装与更新
-          - 用插件安装: 系统 → 晶晨宝盒 → 安装 OpenWrt → 选择型号 → 安装
-          - 用命令安装: U盘启动成功后输入命令 `openwrt-install-amlogic` 按照英文提示写入到 emmc
-          - 用插件更新: 系统 → 晶晨宝盒 → 在线下载更新 → 完整更新全系统
-          - 用命令更新: 上传固件到 `/mnt/mmcblk2p4` 目录，输入命令 `openwrt-update-amlogic` 即可更新
-          - 注意: 如非 `amlogic` 平台，请将其更改为对应平台 `rockchip` `allwinner`
-          - 部分常见问题及注意事项请参考恩山论坛F大➦[最新帖](https://www.right.com.cn/forum/thread-4076037-1-1.html)
-          ### 🧊 固件版本
-          - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
-          - ${{ env.COMMIT_AUTHOR }}
-          - ${{ env.COMMIT_DATE }}
-          - ${{ env.COMMIT_MESSAGE }}
-          - ${{ env.COMMIT_HASH }}
+    # - name: 发布固件
+    #   uses: ncipollo/release-action@main
+    #   with:
+    #     tag: ${{ steps.codes.outputs.build_tag }}
+    #     artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+    #     allowUpdates: true
+    #     token: ${{ secrets.GITHUB_TOKEN }}
+    #     body: |
+    #       **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
+    #       ### 📒 固件信息
+    #       - 🚀 ARMv8 精简版，主打科学上网适合养老
+    #       - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+    #       - ⚽ 固件源码: ${{ env.REPO_URL }}
+    #       - 💝 源码分支: ${{ env.REPO_BRANCH }}
+    #       - 🌐 默认地址: 10.10.10.1
+    #       - 🔑 默认密码: password
+    #       ### 🍻 安装与更新
+    #       - 用插件安装: 系统 → 晶晨宝盒 → 安装 OpenWrt → 选择型号 → 安装
+    #       - 用命令安装: U盘启动成功后输入命令 `openwrt-install-amlogic` 按照英文提示写入到 emmc
+    #       - 用插件更新: 系统 → 晶晨宝盒 → 在线下载更新 → 完整更新全系统
+    #       - 用命令更新: 上传固件到 `/mnt/mmcblk2p4` 目录，输入命令 `openwrt-update-amlogic` 即可更新
+    #       - 注意: 如非 `amlogic` 平台，请将其更改为对应平台 `rockchip` `allwinner`
+    #       - 部分常见问题及注意事项请参考恩山论坛F大➦[最新帖](https://www.right.com.cn/forum/thread-4076037-1-1.html)
+    #       ### 🧊 固件版本
+    #       - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
+    #       - ${{ env.COMMIT_AUTHOR }}
+    #       - ${{ env.COMMIT_DATE }}
+    #       - ${{ env.COMMIT_MESSAGE }}
+    #       - ${{ env.COMMIT_HASH }}
+          
     - name: 清理Actions空间
       uses: Mattraks/delete-workflow-runs@main
       with:
