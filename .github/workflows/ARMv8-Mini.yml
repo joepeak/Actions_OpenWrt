@@ -256,7 +256,7 @@ jobs:
           fi
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-        if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
+        if [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
           # 以下为测试
           cd openwrt
           git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
