@@ -268,7 +268,7 @@ jobs:
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
         echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
-        echo "build_tag=OpenWrt_${TAGS_NAME}_${{ env.OPENWRT_STORAGE }}_$(date +"%Y.%m")" >> ${GITHUB_OUTPUT}
+        echo "build_tag=openwrt_${TAGS_NAME}_armvirt_$(date +"%Y.%m.%d")" >> ${GITHUB_OUTPUT}
         COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
         echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
         echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
@@ -411,51 +411,51 @@ jobs:
         tag: ${{ steps.codes.outputs.build_tag }}
         artifacts: openwrt-armvirt/*
         allowUpdates: true
-        # removeArtifacts: false
-        # replacesArtifacts: true
+        removeArtifacts: false
+        replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # - name: 打包内核
-    #   uses: unifreq/openwrt_packit@master
-    #   if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
-    #   env:
-    #     OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
-    #     PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
-    #     KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
-    #     KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
-    #     KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
-    #     kernel_usage: ${{ env.KERNEL_USAGE }}
-    #     WHOAMI: ${{ env.BUILDER_NAME }}
+    - name: 打包内核
+      uses: unifreq/openwrt_packit@master
+      if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
+      env:
+        OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
+        PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
+        KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
+        KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
+        KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
+        kernel_usage: ${{ env.KERNEL_USAGE }}
+        WHOAMI: ${{ env.BUILDER_NAME }}
   
-    # - name: 发布固件
-    #   uses: ncipollo/release-action@main
-    #   with:
-    #     tag: ${{ steps.codes.outputs.build_tag }}
-    #     artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
-    #     allowUpdates: true
-    #     token: ${{ secrets.GITHUB_TOKEN }}
-    #     body: |
-    #       **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
-    #       ### 📒 固件信息
-    #       - 🚀 ARMv8 精简版，主打科学上网适合养老
-    #       - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-    #       - ⚽ 固件源码: ${{ env.REPO_URL }}
-    #       - 💝 源码分支: ${{ env.REPO_BRANCH }}
-    #       - 🌐 默认地址: 10.10.10.1
-    #       - 🔑 默认密码: password
-    #       ### 🍻 安装与更新
-    #       - 用插件安装: 系统 → 晶晨宝盒 → 安装 OpenWrt → 选择型号 → 安装
-    #       - 用命令安装: U盘启动成功后输入命令 `openwrt-install-amlogic` 按照英文提示写入到 emmc
-    #       - 用插件更新: 系统 → 晶晨宝盒 → 在线下载更新 → 完整更新全系统
-    #       - 用命令更新: 上传固件到 `/mnt/mmcblk2p4` 目录，输入命令 `openwrt-update-amlogic` 即可更新
-    #       - 注意: 如非 `amlogic` 平台，请将其更改为对应平台 `rockchip` `allwinner`
-    #       - 部分常见问题及注意事项请参考恩山论坛F大➦[最新帖](https://www.right.com.cn/forum/thread-4076037-1-1.html)
-    #       ### 🧊 固件版本
-    #       - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
-    #       - ${{ env.COMMIT_AUTHOR }}
-    #       - ${{ env.COMMIT_DATE }}
-    #       - ${{ env.COMMIT_MESSAGE }}
-    #       - ${{ env.COMMIT_HASH }}
+    - name: 发布固件
+      uses: ncipollo/release-action@main
+      with:
+        tag: ${{ steps.codes.outputs.build_tag }}
+        artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+        allowUpdates: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        body: |
+          **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
+          ### 📒 固件信息
+          - 🚀 ARMv8 精简版，主打科学上网适合养老
+          - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+          - ⚽ 固件源码: ${{ env.REPO_URL }}
+          - 💝 源码分支: ${{ env.REPO_BRANCH }}
+          - 🌐 默认地址: 10.10.10.1
+          - 🔑 默认密码: password
+          ### 🍻 安装与更新
+          - 用插件安装: 系统 → 晶晨宝盒 → 安装 OpenWrt → 选择型号 → 安装
+          - 用命令安装: U盘启动成功后输入命令 `openwrt-install-amlogic` 按照英文提示写入到 emmc
+          - 用插件更新: 系统 → 晶晨宝盒 → 在线下载更新 → 完整更新全系统
+          - 用命令更新: 上传固件到 `/mnt/mmcblk2p4` 目录，输入命令 `openwrt-update-amlogic` 即可更新
+          - 注意: 如非 `amlogic` 平台，请将其更改为对应平台 `rockchip` `allwinner`
+          - 部分常见问题及注意事项请参考恩山论坛F大➦[最新帖](https://www.right.com.cn/forum/thread-4076037-1-1.html)
+          ### 🧊 固件版本
+          - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
+          - ${{ env.COMMIT_AUTHOR }}
+          - ${{ env.COMMIT_DATE }}
+          - ${{ env.COMMIT_MESSAGE }}
+          - ${{ env.COMMIT_HASH }}
           
     - name: 清理Actions空间
       uses: Mattraks/delete-workflow-runs@main
