@@ -72,14 +72,6 @@ on:
           - flippy
           - dev
           - beta
-      openwrt_storage:
-        description: "Select image storage type."
-        required: false
-        default: "save"
-        type: choice
-        options:
-          - save
-          - temp
       builder_name:
         description: "Set OpenWrt builder signature."
         required: false
@@ -189,12 +181,6 @@ jobs:
             echo "SOURCE_BRANCH=lede-master" >> $GITHUB_ENV
           else
             echo "SOURCE_BRANCH=${{ inputs.source_branch }}" >> $GITHUB_ENV
-          fi
-
-          if [ -z "${{ inputs.openwrt_storage }}" ]; then
-            echo "OPENWRT_STORAGE=save" >> $GITHUB_ENV
-          else
-            echo "OPENWRT_STORAGE=${{ inputs.openwrt_storage }}" >> $GITHUB_ENV
           fi
 
           if [ -z "${{ inputs.openwrt_board }}" ]; then
