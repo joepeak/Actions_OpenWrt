@@ -283,8 +283,8 @@ jobs:
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
         
-        #echo "===== make defconfig 之后 ====="
-        #grep "CONFIG_TARGET" .config || true
+        echo "===== make defconfig 之后 ====="
+        grep "CONFIG_TARGET" .config || true
 
         DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
         echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
