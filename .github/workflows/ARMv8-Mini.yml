@@ -134,7 +134,7 @@ jobs:
         echo "硬盘详情："
         df -Th
 
-    - name: 创建模拟物理磁盘
+    - name: 创建模拟磁盘
       run: |
           mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
           root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
@@ -242,11 +242,11 @@ jobs:
           fi
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-        if [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
+        #if [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
           # 以下为测试
-          cd openwrt
-          git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
-        fi
+        #  cd openwrt
+        #  git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
+        #fi
  
         ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
         
@@ -390,7 +390,7 @@ jobs:
 
         echo "status=success" >> ${GITHUB_OUTPUT}
      
-    - name: 上传 OpenWrt 到 Release
+    - name: 上传 OpenWrt
       uses: ncipollo/release-action@main
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       with:
