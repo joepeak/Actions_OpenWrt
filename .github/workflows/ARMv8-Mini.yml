@@ -175,7 +175,7 @@ jobs:
         sudo timedatectl set-timezone "${TZ}"
         echo "status=success" >> ${GITHUB_OUTPUT}
     
-    - name: 生成源码变量
+    - name: 确定源码
       run: |
           if [ -z "${{ inputs.source_branch }}" ]; then
             echo "SOURCE_BRANCH=lede-master" >> $GITHUB_ENV
@@ -276,10 +276,16 @@ jobs:
         [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
         
+        echo "===== make defconfig 之前 ====="
+        grep "CONFIG_TARGET_BOARD" .config
+
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
         
+        #echo "===== make defconfig 之后 ====="
+        #grep "CONFIG_TARGET_BOARD" .config
+
         DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
         echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
         echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
