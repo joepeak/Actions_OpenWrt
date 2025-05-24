@@ -165,7 +165,7 @@ jobs:
         sudo swapoff -a
         sudo -E apt-get -y update
         sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
-        sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt)
+        sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt) clang
         sudo -E systemctl daemon-reload
         #sudo -E apt-get -y full-upgrade
         sudo -E apt-get -y autoremove --purge
@@ -276,15 +276,15 @@ jobs:
         [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
         
-        echo "===== make defconfig 之前 ====="
-        grep "CONFIG_TARGET" .config || true
+        # echo "===== make defconfig 之前 ====="
+        # grep "CONFIG_TARGET" .config || true
 
         make defconfig > /dev/null 2>&1
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
         
-        echo "===== make defconfig 之后 ====="
-        grep "CONFIG_TARGET" .config || true
+        # echo "===== make defconfig 之后 ====="
+        # grep "CONFIG_TARGET" .config || true
 
         DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
         echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
