@@ -206,6 +206,7 @@ jobs:
           else
             echo "KERNEL_REPO=${{ inputs.kernel_repo }}" >> $GITHUB_ENV
           fi
+
           if [ -z "${{ inputs.kernel_usage }}" ]; then
             echo "KERNEL_USAGE=stable" >> $GITHUB_ENV
           else
@@ -219,27 +220,28 @@ jobs:
           fi
 
     - name: 克隆源码
-      id: codes
+      id: clone
       working-directory: /workdir
       if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
       run: |
         # Set up compilation source code
         if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
-              REPO_URL="https://github.com/openwrt/openwrt"
-              REPO_BRANCH="main"
-              TAGS_NAME="official"
-          elif [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
-              REPO_URL="https://github.com/coolsnowwolf/lede"
-              REPO_BRANCH="master"
-              TAGS_NAME="lede"
-          elif [[ "${{ env.SOURCE_BRANCH }}" == *"immortalwrt"* ]]; then
-              REPO_URL="https://github.com/immortalwrt/immortalwrt"
-              REPO_BRANCH="master"
-              TAGS_NAME="immortalwrt"
-          else
-              echo "Unknown source code repository."
-              exit 1
-          fi
+            REPO_URL="https://github.com/openwrt/openwrt"
+            REPO_BRANCH="main"
+            TAGS_NAME="official"
+        elif [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
+            REPO_URL="https://github.com/coolsnowwolf/lede"
+            REPO_BRANCH="master"
+            TAGS_NAME="lede"
+        elif [[ "${{ env.SOURCE_BRANCH }}" == *"immortalwrt"* ]]; then
+            REPO_URL="https://github.com/immortalwrt/immortalwrt"
+            REPO_BRANCH="master"
+            TAGS_NAME="immortalwrt"
+        else
+            echo "Unknown source code repository."
+            exit 1
+        fi
+
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
         #if [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
@@ -271,7 +273,7 @@ jobs:
        
     - name: 生成环境变量
       id: variable
-      if: ${{ steps.codes.outputs.status }} == 'success' && !cancelled()
+      if: ${{ steps.clone.outputs.status }} == 'success' && !cancelled()
       run: |
         [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
         cd $OPENWRT_PATH
@@ -400,7 +402,7 @@ jobs:
       uses: ncipollo/release-action@main
       if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
       with:
-        tag: ${{ steps.codes.outputs.build_tag }}
+        tag: ${{ steps.clone.outputs.build_tag }}
         artifacts: openwrt-armvirt/*
         allowUpdates: true
         removeArtifacts: false
@@ -422,7 +424,7 @@ jobs:
     - name: 发布固件
       uses: ncipollo/release-action@main
       with:
-        tag: ${{ steps.codes.outputs.build_tag }}
+        tag: ${{ steps.clone.outputs.build_tag }}
         artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
         allowUpdates: true
         token: ${{ secrets.GITHUB_TOKEN }}
