@@ -96,7 +96,6 @@ env:
   #PACKAGE_SOC: s905d
   TZ: Asia/Shanghai
 
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -176,13 +175,6 @@ jobs:
         sudo timedatectl set-timezone "${TZ}"
         echo "status=success" >> ${GITHUB_OUTPUT}
     
-    - name: Set up Go environment
-      env:
-        GONOSUMDB: "*"
-        GOPROXY: "direct"
-      run: |
-        go version
-
     - name: 确定源码
       run: |
           if [ -z "${{ inputs.source_branch }}" ]; then
@@ -355,9 +347,6 @@ jobs:
         
         echo "status=success" >> ${GITHUB_OUTPUT}
       
-    - name: Preload Go Dependencies
-      run: go mod download
-
     - name: 编译固件
       id: compile
       if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
