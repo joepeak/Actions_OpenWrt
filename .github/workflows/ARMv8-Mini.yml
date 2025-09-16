@@ -7,7 +7,7 @@ on:
       source_branch:
         description: "Select the source branch"
         required: false
-        default: "lede-master"
+        default: "openwrt-main"
         type: choice
         options:
           - openwrt-main
@@ -285,8 +285,8 @@ jobs:
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
         
-        # echo "===== make defconfig 之后 ====="
-        # grep "CONFIG_TARGET" .config || true
+        echo "===== make defconfig 之后 ====="
+        grep "CONFIG_TARGET" .config || true
 
         DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
         echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
@@ -296,13 +296,13 @@ jobs:
         echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
         echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
 
-    - name: 缓存工具链
-      if: env.CACHE_TOOLCHAIN == 'true'
-      uses: HiGarfield/cachewrtbuild@main
-      with:
-        ccache: true
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-        prefix: ${{ env.OPENWRT_PATH }}
+    # - name: 缓存工具链
+    #   if: env.CACHE_TOOLCHAIN == 'true'
+    #   uses: HiGarfield/cachewrtbuild@main
+    #   with:
+    #     ccache: true
+    #     mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+    #     prefix: ${{ env.OPENWRT_PATH }}
 
     - name: 加载feeds
       run: |
@@ -355,6 +355,7 @@ jobs:
 
         #echo "===== .config 内容 ====="
         #grep "dnsmasq" .config
+        grep "CONFIG_TARGET" .config || true
 
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || make -j1 V=s
