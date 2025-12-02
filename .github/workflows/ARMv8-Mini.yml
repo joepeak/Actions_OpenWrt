@@ -20,19 +20,7 @@ on:
         type: choice
         options:
           - all
-          - h96-max-m2
-          - nanopi-r5c
-          - nanopi-r5s
-          - orangepi-5-plus
-          - r66s
-          - r68s
-          - rock5b
-          - rock5c
-          - s905
           - s905d
-          - s905x3
-          - s912
-          - s922x
       openwrt_kernel:
         description: "Select kernel version"
         required: false
@@ -85,6 +73,7 @@ on:
   schedule:
     - cron: 0 16 * * 4
 
+# 全局固定环境变量
 env:
   CONFIG_FILE: configs/armv8-mini.config
   FEEDS_CONF: feeds.conf.default
@@ -100,7 +89,18 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
-    
+
+    # 动态环境变量 - 支持三种触发方式
+    env:
+      SOURCE_BRANCH: ${{ github.event.inputs.source_branch || github.event.client_payload.source_branch || 'lede-master' }}
+      OPENWRT_BOARD: ${{ github.event.inputs.openwrt_board || github.event.client_payload.openwrt_board || 's905d' }}
+      OPENWRT_KERNEL: ${{ github.event.inputs.openwrt_kernel || github.event.client_payload.openwrt_kernel || '6.1.y_6.12.y' }}
+      AUTO_KERNEL: ${{ github.event.inputs.auto_kernel || github.event.client_payload.auto_kernel || 'true' }}
+      KERNEL_REPO: ${{ github.event.inputs.kernel_repo || github.event.client_payload.kernel_repo || 'breakings/OpenWrt' }}
+      KERNEL_USAGE: ${{ github.event.inputs.kernel_usage || github.event.client_payload.kernel_usage || 'stable' }}
+      OPENWRT_STORAGE: ${{ github.event.inputs.openwrt_storage || github.event.client_payload.openwrt_storage || 'save' }}
+      BUILDER_NAME: ${{ github.event.inputs.builder_name || github.event.client_payload.builder_name || 'joe' }}
+
     outputs:
       COMMIT_AUTHOR: ${{ steps.clone.outputs.COMMIT_AUTHOR }}
       COMMIT_DATE: ${{ steps.clone.outputs.COMMIT_DATE }}
@@ -115,6 +115,20 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
     
+    - name: 显示构建配置
+        run: |
+          echo "🎯 触发事件: ${{ github.event_name }}"
+          echo "=========================================="
+          echo "📦 源码分支: $SOURCE_BRANCH"
+          echo "🖥️  设备板型: $OPENWRT_BOARD"
+          echo "🐧 内核版本: $OPENWRT_KERNEL"
+          echo "⚡ 自动内核: $AUTO_KERNEL"
+          echo "📂 内核仓库: $KERNEL_REPO"
+          echo "🏷️  内核用途: $KERNEL_USAGE"
+          echo "💾 存储类型: $OPENWRT_STORAGE"
+          echo "👷 构建者名: $BUILDER_NAME"
+          echo "=========================================="
+          
     - name: 检查服务器配置
       run: |
         echo "警告⚠"
