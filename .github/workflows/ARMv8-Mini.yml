@@ -1,30 +1,30 @@
+---
 name: 编译 ARMv8 Mini 固件
-
 on:
-  repository_dispatch:
+  repository_dispatch: null
   workflow_dispatch:
     inputs:
       source_branch:
-        description: "Select the source branch"
+        description: Select the source branch
         required: false
-        default: "openwrt-main"
+        default: openwrt-main
         type: choice
         options:
           - openwrt-main
           - lede-master
           - immortalwrt-master
       openwrt_board:
-        description: "Select device board"
+        description: Select device board
         required: false
-        default: "s905d"
+        default: s905d
         type: choice
         options:
           - all
           - s905d
       openwrt_kernel:
-        description: "Select kernel version"
+        description: Select kernel version
         required: false
-        default: "6.1.y_6.12.y"
+        default: 6.1.y_6.12.y
         type: choice
         options:
           - 5.4.y
@@ -39,21 +39,21 @@ on:
           - 6.1.y_6.6.y
           - 6.6.y_6.12.y
       auto_kernel:
-        description: "Auto use the latest kernel"
+        description: Auto use the latest kernel
         required: false
         default: true
         type: boolean
       kernel_repo:
-        description: "Set the kernel repository"
+        description: Set the kernel repository
         required: false
-        default: "ophub/kernel"
+        default: ophub/kernel
         type: choice
         options:
           - ophub/kernel
       kernel_usage:
-        description: "Set the tags of the stable kernel."
+        description: Set the tags of the stable kernel.
         required: false
-        default: "stable"
+        default: stable
         type: choice
         options:
           - stable
@@ -61,61 +61,54 @@ on:
           - dev
           - beta
       builder_name:
-        description: "Set OpenWrt builder signature."
+        description: Set OpenWrt builder signature.
         required: false
-        default: "joe"
+        default: joe
         type: choice
         options:
           - ophub
           - angel
           - joe
-
   schedule:
     - cron: 0 16 * * 4
-
-# 全局固定环境变量
 env:
   CONFIG_FILE: configs/armv8-mini.config
   FEEDS_CONF: feeds.conf.default
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
-  #FIRMWARE_TAG: ROOTFS_MINI
-  #OPENWRT_RELEASE: true
-  #OPENWRT_TAG: ARMv8_MINI
-  #PACKAGE_SOC: s905d
   TZ: Asia/Shanghai
-
 jobs:
   build:
     runs-on: ubuntu-22.04
     if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
-
-    # 动态环境变量 - 支持三种触发方式
     env:
-      SOURCE_BRANCH: ${{ github.event.inputs.source_branch || github.event.client_payload.source_branch || 'lede-master' }}
-      OPENWRT_BOARD: ${{ github.event.inputs.openwrt_board || github.event.client_payload.openwrt_board || 's905d' }}
-      OPENWRT_KERNEL: ${{ github.event.inputs.openwrt_kernel || github.event.client_payload.openwrt_kernel || '6.1.y_6.12.y' }}
-      AUTO_KERNEL: ${{ github.event.inputs.auto_kernel || github.event.client_payload.auto_kernel || 'true' }}
-      KERNEL_REPO: ${{ github.event.inputs.kernel_repo || github.event.client_payload.kernel_repo || 'breakings/OpenWrt' }}
-      KERNEL_USAGE: ${{ github.event.inputs.kernel_usage || github.event.client_payload.kernel_usage || 'stable' }}
-      OPENWRT_STORAGE: ${{ github.event.inputs.openwrt_storage || github.event.client_payload.openwrt_storage || 'save' }}
-      BUILDER_NAME: ${{ github.event.inputs.builder_name || github.event.client_payload.builder_name || 'joe' }}
-
+      SOURCE_BRANCH: ${{ github.event.inputs.source_branch ||
+        github.event.client_payload.source_branch || 'lede-master' }}
+      OPENWRT_BOARD: ${{ github.event.inputs.openwrt_board ||
+        github.event.client_payload.openwrt_board || 's905d' }}
+      OPENWRT_KERNEL: ${{ github.event.inputs.openwrt_kernel ||
+        github.event.client_payload.openwrt_kernel || '6.1.y_6.12.y' }}
+      AUTO_KERNEL: ${{ github.event.inputs.auto_kernel ||
+        github.event.client_payload.auto_kernel || 'true' }}
+      KERNEL_REPO: ${{ github.event.inputs.kernel_repo ||
+        github.event.client_payload.kernel_repo || 'breakings/OpenWrt' }}
+      KERNEL_USAGE: ${{ github.event.inputs.kernel_usage ||
+        github.event.client_payload.kernel_usage || 'stable' }}
+      OPENWRT_STORAGE: ${{ github.event.inputs.openwrt_storage ||
+        github.event.client_payload.openwrt_storage || 'save' }}
+      BUILDER_NAME: ${{ github.event.inputs.builder_name ||
+        github.event.client_payload.builder_name || 'joe' }}
     outputs:
       COMMIT_AUTHOR: ${{ steps.clone.outputs.COMMIT_AUTHOR }}
       COMMIT_DATE: ${{ steps.clone.outputs.COMMIT_DATE }}
       COMMIT_MESSAGE: ${{ steps.clone.outputs.COMMIT_MESSAGE }}
       COMMIT_HASH: ${{ steps.clone.outputs.COMMIT_HASH }}
-
       DEVICE_TARGET: ${{ steps.variable.outputs.DEVICE_TARGET }}
       DEVICE_SUBTARGET: ${{ steps.variable.outputs.DEVICE_SUBTARGET }}
-
     steps:
-
-    - name: Checkout
-      uses: actions/checkout@main
-    
-    - name: 显示构建配置
+      - name: Checkout
+        uses: actions/checkout@main
+      - name: 显示构建配置
         run: |
           echo "🎯 触发事件: ${{ github.event_name }}"
           echo "=========================================="
@@ -128,69 +121,108 @@ jobs:
           echo "💾 存储类型: $OPENWRT_STORAGE"
           echo "👷 构建者名: $BUILDER_NAME"
           echo "=========================================="
-          
-    - name: 检查服务器配置
-      run: |
-        echo "警告⚠"
-        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
-        echo "云编译建议取消勾选Node.js及其相关插件！"
-        echo "已知CPU型号（降序）：8370C,8272CL,8171M,E5系列"
-        echo "--------------------------CPU信息--------------------------"
-        echo "CPU物理数量:$(cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l)"
-        echo -e "CPU核心及版本信息：$(cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c) \n"
-        echo "--------------------------内存信息--------------------------"
-        echo "已安装内存详细信息："
-        sudo lshw -short -C memory | grep GiB
-        echo -e "\n"
-        echo "--------------------------硬盘信息--------------------------"
-        echo -e  "硬盘数量：$(ls /dev/sd* | grep -v [1-9] | wc -l) \n"
-        
-        echo "硬盘详情："
-        df -Th
+      - name: 检查服务器配置
+        run: >
+          echo "警告⚠"
 
-    - name: 创建模拟磁盘
-      run: |
-          mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
-          root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
-          sudo truncate -s "${mnt_size}"G /mnt/mnt.img
-          sudo truncate -s "${root_size}"G /root.img
-          sudo losetup /dev/loop6 /mnt/mnt.img
-          sudo losetup /dev/loop7 /root.img
-          sudo pvcreate /dev/loop6
-          sudo pvcreate /dev/loop7
-          sudo vgcreate github /dev/loop6 /dev/loop7
-          sudo lvcreate -n runner -l 100%FREE github
-          sudo mkfs.xfs /dev/github/runner
+          echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
 
-          sudo mkdir -p /workdir
-          sudo mount /dev/github/runner /workdir
-          sudo chown -R runner.runner /workdir
+          echo "云编译建议取消勾选Node.js及其相关插件！"
+
+          echo "已知CPU型号（降序）：8370C,8272CL,8171M,E5系列"
+
+          echo "--------------------------CPU信息--------------------------"
+
+          echo "CPU物理数量:$(cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l)"
+
+          echo -e "CPU核心及版本信息：$(cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c) \n"
+
+          echo "--------------------------内存信息--------------------------"
+
+          echo "已安装内存详细信息："
+
+          sudo lshw -short -C memory | grep GiB
+
+          echo -e "\n"
+
+          echo "--------------------------硬盘信息--------------------------"
+
+          echo -e  "硬盘数量：$(ls /dev/sd* | grep -v [1-9] | wc -l) \n"
+
 
           echo "硬盘详情："
-          df -Th
 
-    - name: 初始化编译环境
-      id: init
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        docker rmi $(docker images -q) 2>/dev/null
-        sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
-        sudo swapoff -a
-        sudo -E apt-get -y update
-        sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
-        sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt) clang
-        sudo -E systemctl daemon-reload
-        #sudo -E apt-get -y full-upgrade
-        sudo -E apt-get -y autoremove --purge
-        sudo -E apt-get clean
-        sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
-        sudo rm -rf ~/{.cargo,.dotnet,.rustup}
-        sudo timedatectl set-timezone "${TZ}"
-        echo "status=success" >> ${GITHUB_OUTPUT}
-    
-    - name: 确定源码
-      run: |
+          df -Th
+      - name: 创建模拟磁盘
+        run: >
+          mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed
+          's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
+
+          root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
+
+          sudo truncate -s "${mnt_size}"G /mnt/mnt.img
+
+          sudo truncate -s "${root_size}"G /root.img
+
+          sudo losetup /dev/loop6 /mnt/mnt.img
+
+          sudo losetup /dev/loop7 /root.img
+
+          sudo pvcreate /dev/loop6
+
+          sudo pvcreate /dev/loop7
+
+          sudo vgcreate github /dev/loop6 /dev/loop7
+
+          sudo lvcreate -n runner -l 100%FREE github
+
+          sudo mkfs.xfs /dev/github/runner
+
+
+          sudo mkdir -p /workdir
+
+          sudo mount /dev/github/runner /workdir
+
+          sudo chown -R runner.runner /workdir
+
+
+          echo "硬盘详情："
+
+          df -Th
+      - name: 初始化编译环境
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          docker rmi $(docker images -q) 2>/dev/null
+
+          sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
+
+          sudo swapoff -a
+
+          sudo -E apt-get -y update
+
+          sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
+
+          sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt) clang
+
+          sudo -E systemctl daemon-reload
+
+          #sudo -E apt-get -y full-upgrade
+
+          sudo -E apt-get -y autoremove --purge
+
+          sudo -E apt-get clean
+
+          sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
+
+          sudo rm -rf ~/{.cargo,.dotnet,.rustup}
+
+          sudo timedatectl set-timezone "${TZ}"
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+      - name: 确定源码
+        run: |
           if [ -z "${{ inputs.source_branch }}" ]; then
             echo "SOURCE_BRANCH=lede-master" >> $GITHUB_ENV
           else
@@ -232,256 +264,318 @@ jobs:
           else
             echo "BUILDER_NAME=${{ inputs.builder_name }}" >> $GITHUB_ENV
           fi
+      - name: 克隆源码
+        id: clone
+        working-directory: /workdir
+        if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
+        run: >
+          # Set up compilation source code
 
-    - name: 克隆源码
-      id: clone
-      working-directory: /workdir
-      if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
-      run: |
-        # Set up compilation source code
-        if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
-            REPO_URL="https://github.com/openwrt/openwrt"
-            # REPO_BRANCH="main"
-            REPO_BRANCH="openwrt-24.10"
-            TAGS_NAME="official"
-        elif [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
-            REPO_URL="https://github.com/coolsnowwolf/lede"
-            REPO_BRANCH="master"
-            TAGS_NAME="lede"
-        elif [[ "${{ env.SOURCE_BRANCH }}" == *"immortalwrt"* ]]; then
-            REPO_URL="https://github.com/immortalwrt/immortalwrt"
-            REPO_BRANCH="master"
-            TAGS_NAME="immortalwrt"
-        else
-            echo "Unknown source code repository."
-            exit 1
-        fi
+          if [[ "${{ env.SOURCE_BRANCH }}" == *"openwrt"* ]]; then
+              REPO_URL="https://github.com/openwrt/openwrt"
+              # REPO_BRANCH="main"
+              REPO_BRANCH="openwrt-24.10"
+              TAGS_NAME="official"
+          elif [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
+              REPO_URL="https://github.com/coolsnowwolf/lede"
+              REPO_BRANCH="master"
+              TAGS_NAME="lede"
+          elif [[ "${{ env.SOURCE_BRANCH }}" == *"immortalwrt"* ]]; then
+              REPO_URL="https://github.com/immortalwrt/immortalwrt"
+              REPO_BRANCH="master"
+              TAGS_NAME="immortalwrt"
+          else
+              echo "Unknown source code repository."
+              exit 1
+          fi
 
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-        #if [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
-          # 以下为测试
-        #  cd openwrt
-        #  git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
-        #fi
- 
-        ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
-        
-        cd ${GITHUB_WORKSPACE}/openwrt
-        echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
-        echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
-        echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
-        echo "build_tag=openwrt_${TAGS_NAME}_armvirt_$(date +"%Y.%m.%d")" >> ${GITHUB_OUTPUT}
-        COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
-        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
-        COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
-        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
-        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
-        COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
-        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
-        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-        COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
-        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
-        
-        echo "status=success" >> ${GITHUB_OUTPUT}
-       
-    - name: 生成环境变量
-      id: variable
-      if: ${{ steps.clone.outputs.status }} == 'success' && !cancelled()
-      run: |
-        [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
-        cd $OPENWRT_PATH
-        
-        # echo "===== make defconfig 之前 ====="
-        # grep "CONFIG_TARGET" .config || true
+          git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-        make defconfig > /dev/null 2>&1
-        SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
-        echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
-        
-        echo "===== make defconfig 之后 ====="
-        grep "CONFIG_TARGET" .config || true
 
-        DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
-        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
-        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
-        
-        DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
-        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
-        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
+          #if [[ "${{ env.SOURCE_BRANCH }}" == *"lede"* ]]; then
+            # 以下为测试
+          #  cd openwrt
 
-    # - name: 缓存工具链
-    #   if: env.CACHE_TOOLCHAIN == 'true'
-    #   uses: HiGarfield/cachewrtbuild@main
-    #   with:
-    #     ccache: true
-    #     mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-    #     prefix: ${{ env.OPENWRT_PATH }}
+          #  git checkout 9e6f393b36941f7dff4f8bf810a9238867d2934e
 
-    - name: 加载feeds
-      run: |
-        [ -e $FEEDS_CONF ] && cp -f $FEEDS_CONF $OPENWRT_PATH/feeds.conf.default
-        
-        chmod +x $DIY_P1_SH
-        cd $OPENWRT_PATH
-        $GITHUB_WORKSPACE/$DIY_P1_SH
+          #fi
 
-    - name: 更新feeds
-      run: |
-        cd $OPENWRT_PATH
-        ./scripts/feeds update -a
-         #据说重新执行一次可以解决很多警告
-        ./scripts/feeds update -a
-        
-    - name: 安装feeds
-      run: |
-        cd $OPENWRT_PATH
-        ./scripts/feeds install -a
-        
-    - name: 加载自定义配置
-      run: |
-        [ -e files ] && mv -f files openwrt/files
-        [ -e $CONFIG_FILE ] && cp -f $CONFIG_FILE $OPENWRT_PATH/.config
-        
-        #echo "===== 复制的 .config 内容 ====="
-        #grep "dnsmasq" $OPENWRT_PATH/.config
 
-        chmod +x $DIY_P2_SH
-        cd $OPENWRT_PATH
-        $GITHUB_WORKSPACE/$DIY_P2_SH
-      
-    - name: 下载 DL包
-      id: package
-      run: |
-        cd $OPENWRT_PATH
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
-        
-        echo "status=success" >> ${GITHUB_OUTPUT}
-      
-    - name: 编译固件
-      id: compile
-      if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
-      run: |
-        cd $OPENWRT_PATH
+          ln -sf /workdir/openwrt ${GITHUB_WORKSPACE}/openwrt
 
-        #echo "===== .config 内容 ====="
-        #grep "dnsmasq" .config
-        grep "CONFIG_TARGET" .config || true
 
-        echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
+          cd ${GITHUB_WORKSPACE}/openwrt
 
-        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
-        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-        echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
-        
-        echo "status=success" >> $GITHUB_OUTPUT
-        
-    - name: 清理磁盘空间
-      id: clean
-      if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
-      run: |
-        
-        echo "清理之前："
-        df -hT
-        
-        mkdir openwrt-armvirt
-        mv openwrt/bin/targets/*/*/*rootfs.tar.gz openwrt-armvirt/
-        mv openwrt/.config openwrt-armvirt/config
+          echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
 
-        # Generate sha256sum file
-        cd openwrt-armvirt/
-        for file in *; do [[ ! -d "${file}" ]] && sha256sum "${file}" >"${file}.sha"; done
+          echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
+
+          echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
+
+          echo "build_tag=openwrt_${TAGS_NAME}_armvirt_$(date +"%Y.%m.%d")" >> ${GITHUB_OUTPUT}
+
+          COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
+
+          echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
+
+          echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+
+          COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
+
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+
+          COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
+
+          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+
+          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+
+          COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
+
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+      - name: 生成环境变量
+        id: variable
+        if: ${{ steps.clone.outputs.status }} == 'success' && !cancelled()
+        run: >
+          [[ -e "${CONFIG_FILE}" ]] && cp -f ${CONFIG_FILE} $OPENWRT_PATH/.config
+
+          cd $OPENWRT_PATH
+
+
+          # echo "===== make defconfig 之前 ====="
+
+          # grep "CONFIG_TARGET" .config || true
+
+
+          make defconfig > /dev/null 2>&1
+
+          SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
+
+          echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
+
+
+          echo "===== make defconfig 之后 ====="
+
+          grep "CONFIG_TARGET" .config || true
+
+
+          DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
+
+          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
+
+          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
+
+
+          DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
+
+          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
+
+          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
+      - name: 加载feeds
+        run: >
+          [ -e $FEEDS_CONF ] && cp -f $FEEDS_CONF $OPENWRT_PATH/feeds.conf.default
+
+
+          chmod +x $DIY_P1_SH
+
+          cd $OPENWRT_PATH
+
+          $GITHUB_WORKSPACE/$DIY_P1_SH
+      - name: 更新feeds
+        run: |
+          cd $OPENWRT_PATH
+          ./scripts/feeds update -a
+           #据说重新执行一次可以解决很多警告
+          ./scripts/feeds update -a
+      - name: 安装feeds
+        run: |
+          cd $OPENWRT_PATH
+          ./scripts/feeds install -a
+      - name: 加载自定义配置
+        run: |
+          [ -e files ] && mv -f files openwrt/files
+          [ -e $CONFIG_FILE ] && cp -f $CONFIG_FILE $OPENWRT_PATH/.config
+
+          #echo "===== 复制的 .config 内容 ====="
+          #grep "dnsmasq" $OPENWRT_PATH/.config
+
+          chmod +x $DIY_P2_SH
+          cd $OPENWRT_PATH
+          $GITHUB_WORKSPACE/$DIY_P2_SH
+      - name: 下载 DL包
+        id: package
+        run: |
+          cd $OPENWRT_PATH
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+      - name: 编译固件
+        id: compile
+        if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
+        run: >
+          cd $OPENWRT_PATH
+
+
+          #echo "===== .config 内容 ====="
+
+          #grep "dnsmasq" .config
+
+          grep "CONFIG_TARGET" .config || true
+
+
+          echo -e "$(nproc) thread compile"
+
+          make -j$(nproc) || make -j1 || make -j1 V=s
+
+
+          grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+
+          [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+
+          echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+          echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
+
+
+          echo "status=success" >> $GITHUB_OUTPUT
+      - name: 清理磁盘空间
+        id: clean
+        if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
+        run: >
           
-        echo -e "\n"
-        echo "列出空间占用前10的目录或文件："
-        sudo du -h --max-depth=1 /workdir |sort -nr | head -10
-        
-        rm -rf /workdir/openwrt/ && sync
-        
-        echo -e "\n"
-        echo "清理之后："
-        df -hT
+          echo "清理之前："
 
-        echo -e "\n"
-        echo "openwrt-armvirt目录下的文件："
-        ls -l
+          df -hT
 
-        echo "status=success" >> ${GITHUB_OUTPUT}
-     
-    - name: 上传 OpenWrt
-      uses: ncipollo/release-action@main
-      if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
-      with:
-        tag: ${{ steps.clone.outputs.build_tag }}
-        artifacts: openwrt-armvirt/*
-        allowUpdates: true
-        removeArtifacts: false
-        replacesArtifacts: true
-        token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: 打包内核
-      uses: unifreq/openwrt_packit@master
-      if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
-      env:
-        OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
-        PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
-        KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
-        KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
-        KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
-        kernel_usage: ${{ env.KERNEL_USAGE }}
-        WHOAMI: ${{ env.BUILDER_NAME }}
-  
-    - name: 发布固件
-      uses: ncipollo/release-action@main
-      with:
-        tag: ${{ steps.clone.outputs.build_tag }}
-        artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
-        allowUpdates: true
-        token: ${{ secrets.GITHUB_TOKEN }}
-        body: |
-          **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
-          ### 📒 固件信息
-          - 🚀 ARMv8 精简版，主打科学上网适合养老
-          - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-          - ⚽ 固件源码: ${{ env.REPO_URL }}
-          - 💝 源码分支: ${{ env.REPO_BRANCH }}
-          - 🌐 默认地址: 10.10.10.1
-          - 🔑 默认密码: password
-          ### 🍻 安装与更新
-          - 用插件安装: 系统 → 晶晨宝盒 → 安装 OpenWrt → 选择型号 → 安装
-          - 用命令安装: U盘启动成功后输入命令 `openwrt-install-amlogic` 按照英文提示写入到 emmc
-          - 用插件更新: 系统 → 晶晨宝盒 → 在线下载更新 → 完整更新全系统
-          - 用命令更新: 上传固件到 `/mnt/mmcblk2p4` 目录，输入命令 `openwrt-update-amlogic` 即可更新
-          - 注意: 如非 `amlogic` 平台，请将其更改为对应平台 `rockchip` `allwinner`
-          - 部分常见问题及注意事项请参考恩山论坛F大➦[最新帖](https://www.right.com.cn/forum/thread-4076037-1-1.html)
-          ### 🧊 固件版本
-          - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
-          - ${{ env.COMMIT_AUTHOR }}
-          - ${{ env.COMMIT_DATE }}
-          - ${{ env.COMMIT_MESSAGE }}
-          - ${{ env.COMMIT_HASH }}
-          
-    - name: 清理Actions空间
-      uses: Mattraks/delete-workflow-runs@main
-      with:
+          mkdir openwrt-armvirt
+
+          mv openwrt/bin/targets/*/*/*rootfs.tar.gz openwrt-armvirt/
+
+          mv openwrt/.config openwrt-armvirt/config
+
+
+          # Generate sha256sum file
+
+          cd openwrt-armvirt/
+
+          for file in *; do [[ ! -d "${file}" ]] && sha256sum "${file}" >"${file}.sha"; done
+            
+          echo -e "\n"
+
+          echo "列出空间占用前10的目录或文件："
+
+          sudo du -h --max-depth=1 /workdir |sort -nr | head -10
+
+
+          rm -rf /workdir/openwrt/ && sync
+
+
+          echo -e "\n"
+
+          echo "清理之后："
+
+          df -hT
+
+
+          echo -e "\n"
+
+          echo "openwrt-armvirt目录下的文件："
+
+          ls -l
+
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+      - name: 上传 OpenWrt
+        uses: ncipollo/release-action@main
+        if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
+        with:
+          tag: ${{ steps.clone.outputs.build_tag }}
+          artifacts: openwrt-armvirt/*
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: 打包内核
+        uses: unifreq/openwrt_packit@master
+        if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
+        env:
+          OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
+          PACKAGE_SOC: ${{ env.OPENWRT_BOARD }}
+          KERNEL_VERSION_NAME: ${{ env.OPENWRT_KERNEL }}
+          KERNEL_AUTO_LATEST: ${{ env.AUTO_KERNEL }}
+          KERNEL_REPO_URL: ${{ env.KERNEL_REPO }}
+          kernel_usage: ${{ env.KERNEL_USAGE }}
+          WHOAMI: ${{ env.BUILDER_NAME }}
+      - name: 发布固件
+        uses: ncipollo/release-action@main
+        with:
+          tag: ${{ steps.clone.outputs.build_tag }}
+          artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: >
+            **This is OpenWrt Firmware for ${{ env.OPENWRT_BOARD }}**
+
+            ### 📒 固件信息
+
+            - 🚀 ARMv8 精简版，主打科学上网适合养老
+
+            - 💻 平台架构: ${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+
+            - ⚽ 固件源码: ${{ env.REPO_URL }}
+
+            - 💝 源码分支: ${{ env.REPO_BRANCH }}
+
+            - 🌐 默认地址: 10.10.10.1
+
+            - 🔑 默认密码: password
+
+            ### 🍻 安装与更新
+
+            - 用插件安装: 系统 → 晶晨宝盒 → 安装 OpenWrt → 选择型号 → 安装
+
+            - 用命令安装: U盘启动成功后输入命令 `openwrt-install-amlogic` 按照英文提示写入到 emmc
+
+            - 用插件更新: 系统 → 晶晨宝盒 → 在线下载更新 → 完整更新全系统
+
+            - 用命令更新: 上传固件到 `/mnt/mmcblk2p4` 目录，输入命令 `openwrt-update-amlogic` 即可更新
+
+            - 注意: 如非 `amlogic` 平台，请将其更改为对应平台 `rockchip` `allwinner`
+
+            - 部分常见问题及注意事项请参考恩山论坛F大➦[最新帖](https://www.right.com.cn/forum/thread-4076037-1-1.html)
+
+            ### 🧊 固件版本
+
+            - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
+
+            - ${{ env.COMMIT_AUTHOR }}
+
+            - ${{ env.COMMIT_DATE }}
+
+            - ${{ env.COMMIT_MESSAGE }}
+
+            - ${{ env.COMMIT_HASH }}
+      - name: 清理Actions空间
+        uses: Mattraks/delete-workflow-runs@main
+        with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          #keep_minimum_runs: 0
           retain_days: 8
-          #retain_days: ${{ github.event.inputs.action_days }}
-    
-    - name: 删除多余releases
-      uses: dev-drprasad/delete-older-releases@master
-      with:
-        repo: ${{ github.repository }}
-        keep_latest: 6
-        #keep_latest: ${{ github.event.inputs.rele }}
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 删除多余releases
+        uses: dev-drprasad/delete-older-releases@master
+        with:
+          repo: ${{ github.repository }}
+          keep_latest: 6
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
